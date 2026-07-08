@@ -30,13 +30,20 @@
     companyName: 'ایران‌هتل آنلاین',
     panelTitle: 'IHO ATS',
     hrName: 'واحد منابع انسانی ایران‌هتل',
-    defaultLocation: 'مشهد، دفتر مرکزی ایران‌هتل آنلاین',
-    locationLink: '',
-    hrPhone: '',
+    defaultLocation: 'مشهد - بلوار جانباز - بین ۳ و ۵ - ساختمان ست سنتر - طبقه سوم',
+    locationLink: 'https://nshn.ir/a0_b14CuQJGkgJ',
+    hrPhone: '05191005105',
     interviewers: 'مدیر منابع انسانی، مدیر واحد مربوطه، مدیر عملیات',
     apiToken: '',
     clientDryRun: 'true'
   };
+
+  const LEGACY_DEFAULT_LOCATIONS = [
+    'مشهد، دفتر مرکزی ایران‌هتل آنلاین',
+    'مشهد، دفتر مرکزی ایران هتل آنلاین',
+    'مشهد، ایران‌هتل آنلاین',
+    'مشهد، ایران هتل آنلاین'
+  ];
 
   const KEYS = {
     settings: 'iho_ats_settings_v2',
@@ -61,16 +68,16 @@
   ];
 
   const DEFAULT_TEMPLATES = [
-    { id: uid(), title: 'دعوت به مصاحبه', body: 'سلام {name} عزیز\nاز طرف {company} برای موقعیت شغلی «{job}» به مصاحبه دعوت شده‌اید.\nزمان مصاحبه: {date} ساعت {time}\nمحل مصاحبه: {location}\n{link}\nلطفاً در صورت عدم امکان حضور، به واحد HR اطلاع دهید.\n{hrName}' },
-    { id: uid(), title: 'یادآوری ۲۴ ساعت قبل مصاحبه', body: 'سلام {name} عزیز\nیادآوری می‌شود مصاحبه شما برای موقعیت «{job}» فردا در تاریخ {date} ساعت {time} برگزار می‌شود.\nمحل: {location}\nبا آرزوی موفقیت\n{hrName}' },
-    { id: uid(), title: 'یادآوری ۳ ساعت قبل مصاحبه', body: 'سلام {name} عزیز\nمصاحبه شما با {company} امروز ساعت {time} برگزار می‌شود.\nلطفاً چند دقیقه زودتر در محل حضور داشته باشید.\nآدرس: {location}\n{hrName}' },
-    { id: uid(), title: 'تغییر زمان مصاحبه', body: 'سلام {name} عزیز\nزمان مصاحبه شما برای موقعیت «{job}» تغییر کرد.\nزمان جدید: {date} ساعت {time}\nمحل: {location}\nاز همراهی شما سپاسگزاریم.\n{hrName}' },
+    { id: uid(), title: 'دعوت به مصاحبه', body: 'سلام {name} عزیز\nاز طرف {company} برای موقعیت شغلی «{job}» به مصاحبه دعوت شده‌اید.\nزمان مصاحبه: {date} ساعت {time}\nمحل مصاحبه: {location}\nلینک لوکیشن: {link}\nتلفن هماهنگی: {hrPhone}\nلطفاً در صورت عدم امکان حضور، به واحد HR اطلاع دهید.\n{hrName}' },
+    { id: uid(), title: 'یادآوری ۲۴ ساعت قبل مصاحبه', body: 'سلام {name} عزیز\nیادآوری می‌شود مصاحبه شما برای موقعیت «{job}» فردا در تاریخ {date} ساعت {time} برگزار می‌شود.\nمحل: {location}\nلینک لوکیشن: {link}\nتلفن هماهنگی: {hrPhone}\nبا آرزوی موفقیت\n{hrName}' },
+    { id: uid(), title: 'یادآوری ۳ ساعت قبل مصاحبه', body: 'سلام {name} عزیز\nمصاحبه شما با {company} امروز ساعت {time} برگزار می‌شود.\nلطفاً چند دقیقه زودتر در محل حضور داشته باشید.\nآدرس: {location}\nلینک لوکیشن: {link}\nتلفن هماهنگی: {hrPhone}\n{hrName}' },
+    { id: uid(), title: 'تغییر زمان مصاحبه', body: 'سلام {name} عزیز\nزمان مصاحبه شما برای موقعیت «{job}» تغییر کرد.\nزمان جدید: {date} ساعت {time}\nمحل: {location}\nلینک لوکیشن: {link}\nتلفن هماهنگی: {hrPhone}\nاز همراهی شما سپاسگزاریم.\n{hrName}' },
     { id: uid(), title: 'درخواست تکمیل مدارک', body: 'سلام {name} عزیز\nلطفاً برای تکمیل فرایند بررسی موقعیت «{job}»، رزومه به‌روز و مدارک مرتبط را ارسال کنید.\n{hrName}' },
-    { id: uid(), title: 'دعوت به مصاحبه دوم', body: 'سلام {name} عزیز\nنتیجه مصاحبه اول شما مثبت بوده و برای مصاحبه مرحله دوم موقعیت «{job}» دعوت می‌شوید.\nزمان: {date} ساعت {time}\nمحل: {location}\n{hrName}' },
+    { id: uid(), title: 'دعوت به مصاحبه دوم', body: 'سلام {name} عزیز\nنتیجه مصاحبه اول شما مثبت بوده و برای مصاحبه مرحله دوم موقعیت «{job}» دعوت می‌شوید.\nزمان: {date} ساعت {time}\nمحل: {location}\nلینک لوکیشن: {link}\nتلفن هماهنگی: {hrPhone}\n{hrName}' },
     { id: uid(), title: 'اعلام نتیجه مثبت', body: 'سلام {name} عزیز\nبا خوشحالی اعلام می‌کنیم نتیجه بررسی شما برای موقعیت «{job}» مثبت بوده است.\nبرای هماهنگی مراحل بعدی، واحد منابع انسانی با شما تماس خواهد گرفت.\n{company}' },
     { id: uid(), title: 'عدم همکاری محترمانه', body: 'سلام {name} عزیز\nاز زمانی که برای فرایند مصاحبه موقعیت «{job}» در {company} گذاشتید سپاسگزاریم.\nدر این مرحله امکان همکاری فراهم نشد، اما اطلاعات شما برای فرصت‌های آینده در بانک منابع انسانی باقی می‌ماند.\nبا آرزوی موفقیت\n{hrName}' },
     { id: uid(), title: 'پیشنهاد همکاری / Offer', body: 'سلام {name} عزیز\nبا توجه به نتیجه مثبت ارزیابی‌ها، برای ادامه فرایند پیشنهاد همکاری موقعیت «{job}» با شما تماس گرفته خواهد شد.\n{company}' },
-    { id: uid(), title: 'شروع همکاری / آنبوردینگ', body: 'سلام {name} عزیز\nبه خانواده {company} خوش آمدید.\nبرای شروع همکاری، لطفاً در تاریخ {date} ساعت {time} در محل {location} حضور داشته باشید.\n{hrName}' }
+    { id: uid(), title: 'شروع همکاری / آنبوردینگ', body: 'سلام {name} عزیز\nبه خانواده {company} خوش آمدید.\nبرای شروع همکاری، لطفاً در تاریخ {date} ساعت {time} در محل {location} حضور داشته باشید.\nلینک لوکیشن: {link}\nتلفن هماهنگی: {hrPhone}\n{hrName}' }
   ];
 
   const store = {
@@ -138,7 +145,13 @@
 
   function loadSettings() {
     const previous = store.get(KEYS.settings, null) || store.get('iho_hr_settings', null) || {};
-    return { ...DEFAULT_SETTINGS, ...previous };
+    const merged = { ...DEFAULT_SETTINGS, ...previous };
+    if (!merged.defaultLocation || LEGACY_DEFAULT_LOCATIONS.includes(merged.defaultLocation)) {
+      merged.defaultLocation = DEFAULT_SETTINGS.defaultLocation;
+    }
+    if (!merged.locationLink) merged.locationLink = DEFAULT_SETTINGS.locationLink;
+    if (!merged.hrPhone) merged.hrPhone = DEFAULT_SETTINGS.hrPhone;
+    return merged;
   }
 
   function loadCandidates() {
@@ -541,6 +554,8 @@
     settings = { ...DEFAULT_SETTINGS, ...next };
     const ok = saveSettings(true);
     settings = loadSettings();
+    const synced = syncLegacyCandidateLocations();
+    if (synced) saveCandidates();
     applySettingsToUi();
     fillStaticSelects();
     renderAll();
@@ -1048,6 +1063,29 @@
 
   function selectedCandidateObjects() { return candidates.filter((item) => selectedCandidates.has(item.id)); }
 
+  function isLegacyLocation(value) {
+    const text = String(value || '').trim();
+    if (!text) return true;
+    return LEGACY_DEFAULT_LOCATIONS.includes(text) || text.includes('دفتر مرکزی ایران‌هتل') || text.includes('دفتر مرکزی ایران هتل');
+  }
+
+  function effectiveSmsLocation(candidate) {
+    // برای پیامک‌ها، آدرس تنظیمات فعلی همیشه اولویت دارد؛ چون کاندیداهای قدیمی ممکن است آدرس پیش‌فرض قبلی را داخل پرونده داشته باشند.
+    return settings.defaultLocation || candidate?.location || DEFAULT_SETTINGS.defaultLocation || '';
+  }
+
+  function syncLegacyCandidateLocations() {
+    let changed = false;
+    candidates = candidates.map((item) => {
+      if (isLegacyLocation(item.location)) {
+        changed = true;
+        return { ...item, location: settings.defaultLocation, updatedAt: nowIso() };
+      }
+      return item;
+    });
+    return changed;
+  }
+
   function applyTemplate(template, candidate) {
     const jobTitle = candidateJobTitle(candidate);
     return String(template || '')
@@ -1056,7 +1094,7 @@
       .replaceAll('{job}', jobTitle || candidate.role || '')
       .replaceAll('{date}', formatDate(candidate.date || ''))
       .replaceAll('{time}', toFa(candidate.time || ''))
-      .replaceAll('{location}', candidate.location || settings.defaultLocation || '')
+      .replaceAll('{location}', effectiveSmsLocation(candidate))
       .replaceAll('{company}', settings.companyName || '')
       .replaceAll('{hrName}', settings.hrName || '')
       .replaceAll('{link}', settings.locationLink || '')
@@ -1084,7 +1122,7 @@
       name: item.name || '', phone: normalizeMobile(item.phone || item.mobile || ''), email: item.email || '',
       jobId: item.jobId || '', role: item.role || item.job || item.adTitle || '', source: item.source || '', stage, date: item.date || '', time: item.time || '',
       interviewer: item.interviewer || '', expectedSalary: item.expectedSalary || '', availability: item.availability || '', resumeUrl: item.resumeUrl || item.resumeLink || '', resumeFile: item.resumeFile || null,
-      location: item.location || settings.defaultLocation || DEFAULT_SETTINGS.defaultLocation, tags: item.tags || '', notes: item.notes || '', rawJobinja: item.rawJobinja || null, importedAt: item.importedAt || '', score: Number(item.score || 0),
+      location: isLegacyLocation(item.location) ? (settings.defaultLocation || DEFAULT_SETTINGS.defaultLocation) : item.location, tags: item.tags || '', notes: item.notes || '', rawJobinja: item.rawJobinja || null, importedAt: item.importedAt || '', score: Number(item.score || 0),
       scorecard: {
         technical: Number(scorecard.technical || 0), communication: Number(scorecard.communication || 0), culture: Number(scorecard.culture || 0), motivation: Number(scorecard.motivation || 0), availability: Number(scorecard.availability || 0)
       },
@@ -1507,7 +1545,7 @@
   }
 
   function exportAllJson() {
-    const data = { version: '2.0.0', exportedAt: nowIso(), settings, jobs, candidates, templates, tasks, logs, activities };
+    const data = { version: '4.0.0', exportedAt: nowIso(), settings, jobs, candidates, templates, tasks, logs, activities };
     downloadText(JSON.stringify(data, null, 2), `iho-ats-backup-${dateStamp()}.json`, 'application/json;charset=utf-8');
   }
 

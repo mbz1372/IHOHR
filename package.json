@@ -1,6 +1,6 @@
 {
-  "name": "iho-ats-zero-v2",
-  "version": "2.0.0",
+  "name": "iho-ats-zero-v4",
+  "version": "4.0.0",
   "private": true,
   "description": "Zero dependency ATS and HR SMS panel for IranHotelOnline on Vercel",
   "scripts": {
