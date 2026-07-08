@@ -228,3 +228,42 @@ label { display: grid; gap: 7px; color: #334155; font-size: 13px; font-weight: 8
 .resume-actions { max-width: 190px; }
 .resume-actions .muted { width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 900px) { .import-box { flex-direction: column; align-items: stretch; } }
+
+
+/* V5: drag-and-drop pipeline + executive HR reports */
+.kanban-col { transition: .18s ease; }
+.kanban-col.drag-over { border-color: var(--primary); background: #eef6ff; box-shadow: inset 0 0 0 2px rgba(15, 59, 99, .12); }
+.candidate-card { cursor: grab; transition: transform .18s ease, opacity .18s ease, box-shadow .18s ease; }
+.candidate-card:active { cursor: grabbing; }
+.candidate-card.dragging { opacity: .52; transform: rotate(-1deg) scale(.99); box-shadow: 0 18px 45px rgba(15,23,42,.18); }
+.kanban-empty { border: 1px dashed #cbd5e1; border-radius: 14px; padding: 14px; text-align: center; }
+.manager-summary {
+  display: flex; justify-content: space-between; align-items: center; gap: 14px;
+  border: 1px solid #dbeafe; background: linear-gradient(135deg, #eff6ff, #f8fafc); border-radius: 18px;
+  padding: 14px 16px; margin: 12px 0 14px;
+}
+.manager-summary p { margin: 6px 0 0; color: var(--muted); line-height: 1.9; }
+.report-grid.executive { grid-template-columns: repeat(5, minmax(0,1fr)); }
+.report-grid.health { grid-template-columns: repeat(2, minmax(0,1fr)); margin-bottom: 14px; }
+.executive-card small, .health-card small { display: block; color: var(--muted); margin-top: 8px; line-height: 1.7; }
+.reports-layout { margin-top: 16px; }
+.funnel-report { display: grid; gap: 11px; }
+.funnel-row { display: grid; grid-template-columns: 170px 1fr 48px; align-items: center; gap: 10px; }
+.funnel-label { display: grid; gap: 2px; }
+.funnel-label b { font-size: 13px; }
+.funnel-label span { color: var(--muted); font-size: 12px; }
+.funnel-line { height: 12px; background: #e2e8f0; border-radius: 999px; overflow: hidden; }
+.funnel-line span { display: block; height: 100%; background: linear-gradient(90deg, var(--primary), #0ea5e9); border-radius: inherit; }
+.funnel-row small { color: var(--muted); }
+.manager-table td b { color: #0f172a; }
+.recommendations { border: 1px dashed #cbd5e1; border-radius: 16px; padding: 12px 14px; background: #fbfdff; }
+.recommendations h4 { margin-bottom: 8px; }
+.recommendations ul { margin: 0; padding-inline-start: 20px; color: var(--muted); line-height: 2; }
+@media (max-width: 1180px) {
+  .report-grid.executive { grid-template-columns: repeat(3, minmax(0,1fr)); }
+}
+@media (max-width: 900px) {
+  .manager-summary { flex-direction: column; align-items: stretch; }
+  .report-grid.executive, .report-grid.health { grid-template-columns: 1fr; }
+  .funnel-row { grid-template-columns: 1fr; }
+}

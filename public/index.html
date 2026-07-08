@@ -176,7 +176,7 @@
               <button class="btn ghost" id="moveSelectedToInterview">دعوت افراد انتخاب‌شده به مصاحبه</button>
             </div>
           </div>
-          <p class="muted">روی دکمه‌های مرحله بعد/قبل بزن تا کاندیدا در پایپ‌لاین حرکت کند. این تغییرات ذخیره می‌شود.</p>
+          <p class="muted">کارت هر کاندیدا را بگیر و روی مرحله مقصد رها کن؛ جابه‌جایی درجا ذخیره می‌شود. دکمه‌های قبل/بعد هم برای تغییر سریع باقی مانده‌اند.</p>
           <div class="kanban" id="pipelineBoard"></div>
         </section>
       </section>
@@ -307,43 +307,120 @@
       </section>
 
       <section class="view" id="view-reports">
-        <div class="grid two">
+        <section class="card">
+          <div class="card-head wrap">
+            <div>
+              <p class="eyebrow">HR Manager Analytics</p>
+              <h3>گزارش مدیریتی منابع انسانی</h3>
+            </div>
+            <div class="filters">
+              <select id="reportJobFilter" class="input"></select>
+              <select id="reportPeriodFilter" class="input">
+                <option value="all">کل دوره</option>
+                <option value="7">۷ روز اخیر</option>
+                <option value="30">۳۰ روز اخیر</option>
+                <option value="90">۹۰ روز اخیر</option>
+              </select>
+              <button class="btn ghost small" id="exportManagerReportBtn">خروجی گزارش مدیر CSV</button>
+              <button class="btn ghost small" id="exportCandidatesBtn">خروجی کاندیداها CSV</button>
+              <button class="btn ghost small" id="exportLogsBtn">خروجی لاگ CSV</button>
+            </div>
+          </div>
+          <div class="manager-summary" id="managerSummary"></div>
+          <div id="reportsGrid" class="report-grid executive"></div>
+        </section>
+
+        <div class="grid two wide-left reports-layout">
           <section class="card">
             <div class="card-head wrap">
               <div>
-                <p class="eyebrow">Analytics</p>
-                <h3>گزارش جذب</h3>
-              </div>
-              <div class="actions-row compact">
-                <button class="btn ghost small" id="exportCandidatesBtn">خروجی کاندیداها CSV</button>
-                <button class="btn ghost small" id="exportLogsBtn">خروجی لاگ CSV</button>
+                <p class="eyebrow">Recruitment Funnel</p>
+                <h3>قیف جذب و تبدیل مراحل</h3>
               </div>
             </div>
-            <div id="reportsGrid" class="report-grid"></div>
+            <div id="funnelReport" class="funnel-report"></div>
           </section>
           <section class="card">
             <div class="card-head wrap">
               <div>
-                <p class="eyebrow">SMS Logs</p>
-                <h3>گزارش ارسال پیامک</h3>
+                <p class="eyebrow">Job Performance</p>
+                <h3>عملکرد هر فرصت شغلی</h3>
               </div>
-              <button class="btn danger small" id="clearLogsBtn">پاک کردن لاگ</button>
             </div>
             <div class="table-wrap compact-table">
-              <table class="table">
+              <table class="table manager-table">
                 <thead>
                   <tr>
-                    <th>زمان</th>
-                    <th>گیرنده</th>
-                    <th>نوع</th>
-                    <th>وضعیت</th>
+                    <th>فرصت شغلی</th>
+                    <th>کاندیدا</th>
+                    <th>مصاحبه</th>
+                    <th>پیشنهاد/استخدام</th>
+                    <th>میانگین امتیاز</th>
                   </tr>
                 </thead>
-                <tbody id="logRows"></tbody>
+                <tbody id="jobReportRows"></tbody>
               </table>
             </div>
           </section>
         </div>
+
+        <div class="grid two reports-layout">
+          <section class="card">
+            <div class="card-head wrap">
+              <div>
+                <p class="eyebrow">Candidate Sources</p>
+                <h3>کیفیت منابع جذب</h3>
+              </div>
+            </div>
+            <div class="table-wrap compact-table">
+              <table class="table manager-table">
+                <thead>
+                  <tr>
+                    <th>منبع</th>
+                    <th>کاندیدا</th>
+                    <th>مصاحبه</th>
+                    <th>استخدام</th>
+                    <th>نرخ تبدیل</th>
+                  </tr>
+                </thead>
+                <tbody id="sourceReportRows"></tbody>
+              </table>
+            </div>
+          </section>
+          <section class="card">
+            <div class="card-head wrap">
+              <div>
+                <p class="eyebrow">HR Control Room</p>
+                <h3>سلامت عملیات جذب</h3>
+              </div>
+            </div>
+            <div id="hrHealthGrid" class="report-grid health"></div>
+            <div id="reportRecommendations" class="recommendations"></div>
+          </section>
+        </div>
+
+        <section class="card">
+          <div class="card-head wrap">
+            <div>
+              <p class="eyebrow">SMS Logs</p>
+              <h3>گزارش ارسال پیامک</h3>
+            </div>
+            <button class="btn danger small" id="clearLogsBtn">پاک کردن لاگ</button>
+          </div>
+          <div class="table-wrap compact-table">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>زمان</th>
+                  <th>گیرنده</th>
+                  <th>نوع</th>
+                  <th>وضعیت</th>
+                </tr>
+              </thead>
+              <tbody id="logRows"></tbody>
+            </table>
+          </div>
+        </section>
       </section>
 
       <section class="view" id="view-settings">

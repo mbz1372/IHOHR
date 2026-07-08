@@ -110,6 +110,7 @@
   let activities = store.get(KEYS.activities, []);
   let selectedCandidates = new Set();
   let currentView = 'dashboard';
+  let draggedCandidateId = null;
 
   document.addEventListener('DOMContentLoaded', init);
 
@@ -175,6 +176,7 @@
     setSelect('#candidateJob', [{ value: '', label: 'بدون اتصال به فرصت شغلی' }, ...jobOptions]);
     setSelect('#jobFilter', [{ value: 'all', label: 'همه موقعیت‌ها' }, ...jobOptions]);
     setSelect('#pipelineJobFilter', [{ value: 'all', label: 'همه فرصت‌های شغلی' }, ...jobOptions]);
+    setSelect('#reportJobFilter', [{ value: 'all', label: 'همه فرصت‌های شغلی' }, ...jobOptions]);
     setSelect('#taskCandidate', [{ value: '', label: 'بدون کاندیدا' }, ...candidates.map((c) => ({ value: c.id, label: `${c.name} - ${candidateJobTitle(c)}` }))]);
   }
 
@@ -455,6 +457,9 @@
   }
 
   function bindReports() {
+    $('#reportJobFilter').addEventListener('change', renderReports);
+    $('#reportPeriodFilter').addEventListener('change', renderReports);
+    $('#exportManagerReportBtn').addEventListener('click', exportManagerReport);
     $('#exportCandidatesBtn').addEventListener('click', exportCandidates);
     $('#exportLogsBtn').addEventListener('click', exportLogs);
     $('#clearLogsBtn').addEventListener('click', () => {
@@ -753,19 +758,20 @@
     $('#pipelineBoard').innerHTML = STAGES.map((stage) => {
       const stageItems = rows.filter((candidate) => candidate.stage === stage);
       return `
-        <div class="kanban-col">
+        <div class="kanban-col" data-kanban-stage="${escapeHtml(stage)}">
           <div class="kanban-head"><h4>${escapeHtml(stage)}</h4><span class="pill gray">${toFa(stageItems.length)}</span></div>
-          ${stageItems.length ? stageItems.map((candidate) => pipelineCard(candidate)).join('') : '<p class="muted">خالی</p>'}
+          ${stageItems.length ? stageItems.map((candidate) => pipelineCard(candidate)).join('') : '<p class="muted kanban-empty">کارت را اینجا رها کن</p>'}
         </div>
       `;
     }).join('');
 
     bindCandidateActionButtons();
+    bindPipelineDragAndDrop();
   }
 
   function pipelineCard(candidate) {
     return `
-      <div class="candidate-card">
+      <div class="candidate-card" draggable="true" data-drag-candidate="${candidate.id}">
         <label class="pick-item" style="padding:0;border:0;background:transparent"><input type="checkbox" data-pipeline-select="${candidate.id}" /><span><strong>${escapeHtml(candidate.name)}</strong><span>${escapeHtml(candidateJobTitle(candidate))}</span></span></label>
         <div class="job-meta">
           <span class="pill gray">${toFa(candidate.phone)}</span>
@@ -899,16 +905,82 @@
   }
 
   function renderReports() {
-    const total = candidates.length;
-    const accepted = candidates.filter((c) => c.stage === 'پذیرفته شده').length;
-    const rejected = candidates.filter((c) => c.stage === 'عدم همکاری').length;
-    const interviews = candidates.filter((c) => c.date && c.time).length;
-    const avgScore = total ? Math.round(candidates.reduce((sum, c) => sum + Number(c.score || 0), 0) / total) : 0;
-    const smsOk = logs.filter((log) => log.ok).length;
+    const data = getManagerReportData();
     const cards = [
-      ['کل کاندیداها', total], ['مصاحبه ثبت‌شده', interviews], ['پذیرفته شده', accepted], ['عدم همکاری', rejected], ['میانگین امتیاز', avgScore], ['پیامک موفق/تستی', smsOk]
+      ['کل کاندیداهای فیلتر شده', data.total, 'تعداد پرونده‌های فعال در بازه انتخابی'],
+      ['مصاحبه ثبت‌شده', data.interviews, `${data.interviewRate}% از کل کاندیداها`],
+      ['پیشنهاد همکاری', data.offers, `${data.offerRate}% از کل کاندیداها`],
+      ['استخدام شده', data.accepted, `${data.acceptRate}% نرخ استخدام`],
+      ['عدم همکاری', data.rejected, `${data.rejectRate}% خروج از فرایند`],
+      ['میانگین امتیاز', data.avgScore, 'بر اساس Scorecard پرونده‌ها'],
+      ['مصاحبه ۷ روز آینده', data.next7Interviews, 'نیازمند یادآوری و هماهنگی'],
+      ['تسک معوق HR', data.overdueTasks, 'تسک‌های باز عقب‌افتاده'],
+      ['کاندیدای بدون رزومه', data.noResume, 'پرونده‌هایی که لینک یا فایل رزومه ندارند'],
+      ['نرخ موفقیت پیامک', `${data.smsSuccessRate}%`, `${toFa(data.smsOk)} موفق از ${toFa(data.smsTotal)} لاگ`]
     ];
-    $('#reportsGrid').innerHTML = cards.map(([label, value]) => `<div class="report-card"><span>${label}</span><b>${toFa(value)}</b></div>`).join('');
+
+    $('#managerSummary').innerHTML = `
+      <div>
+        <b>خلاصه مدیریتی</b>
+        <p>در ${escapeHtml(data.periodLabel)} برای ${escapeHtml(data.jobLabel)}، ${toFa(data.total)} کاندیدا بررسی شده، ${toFa(data.interviews)} مصاحبه ثبت شده و ${toFa(data.accepted)} نفر به مرحله استخدام رسیده‌اند. نرخ تبدیل مصاحبه ${toFa(data.interviewRate)}٪ و نرخ استخدام ${toFa(data.acceptRate)}٪ است.</p>
+      </div>
+      <span class="pill ${data.overdueTasks ? 'red' : 'green'}">${data.overdueTasks ? `${toFa(data.overdueTasks)} تسک معوق` : 'عملیات بدون تسک معوق'}</span>
+    `;
+
+    $('#reportsGrid').innerHTML = cards.map(([label, value, hint]) => `
+      <div class="report-card executive-card">
+        <span>${escapeHtml(label)}</span>
+        <b>${toFa(value)}</b>
+        <small>${escapeHtml(hint)}</small>
+      </div>
+    `).join('');
+
+    $('#funnelReport').innerHTML = STAGES.map((stage) => {
+      const count = data.stageCounts[stage] || 0;
+      const width = data.total ? Math.max(4, Math.round((count / data.total) * 100)) : 0;
+      return `
+        <div class="funnel-row">
+          <div class="funnel-label"><b>${escapeHtml(stage)}</b><span>${toFa(count)} نفر</span></div>
+          <div class="funnel-line"><span style="width:${width}%"></span></div>
+          <small>${toFa(data.total ? Math.round((count / data.total) * 100) : 0)}٪</small>
+        </div>
+      `;
+    }).join('');
+
+    $('#jobReportRows').innerHTML = data.jobRows.length ? data.jobRows.map((row) => `
+      <tr>
+        <td><b>${escapeHtml(row.title)}</b><div class="muted">${escapeHtml(row.department || '-')} | ${escapeHtml(row.status || '-')}</div></td>
+        <td>${toFa(row.total)}</td>
+        <td>${toFa(row.interviews)} <span class="muted">(${toFa(row.interviewRate)}٪)</span></td>
+        <td>${toFa(row.offers)} / ${toFa(row.accepted)}</td>
+        <td>${toFa(row.avgScore)}</td>
+      </tr>
+    `).join('') : '<tr><td colspan="5" class="muted">برای این فیلتر داده‌ای وجود ندارد.</td></tr>';
+
+    $('#sourceReportRows').innerHTML = data.sourceRows.length ? data.sourceRows.map((row) => `
+      <tr>
+        <td><b>${escapeHtml(row.source)}</b></td>
+        <td>${toFa(row.total)}</td>
+        <td>${toFa(row.interviews)}</td>
+        <td>${toFa(row.accepted)}</td>
+        <td>${toFa(row.conversion)}٪</td>
+      </tr>
+    `).join('') : '<tr><td colspan="5" class="muted">منبع جذبی ثبت نشده است.</td></tr>';
+
+    const healthCards = [
+      ['کاندیدای راکد', data.idleCandidates, 'بیش از ۷ روز بدون بروزرسانی'],
+      ['تسک باز', data.openTasks, 'پیگیری‌های در جریان'],
+      ['فرصت شغلی باز', data.openJobs, 'نیازمندی‌های فعال'],
+      ['پرونده لیست انتظار', data.waiting, 'برای فرصت‌های آینده']
+    ];
+    $('#hrHealthGrid').innerHTML = healthCards.map(([label, value, hint]) => `
+      <div class="report-card health-card"><span>${escapeHtml(label)}</span><b>${toFa(value)}</b><small>${escapeHtml(hint)}</small></div>
+    `).join('');
+
+    $('#reportRecommendations').innerHTML = data.recommendations.length ? `
+      <h4>پیشنهادهای عملیاتی برای مدیر منابع انسانی</h4>
+      <ul>${data.recommendations.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+    ` : '<p class="muted">وضعیت عملیات جذب پایدار است و مورد فوری دیده نمی‌شود.</p>';
   }
 
   function renderLogs() {
@@ -971,11 +1043,50 @@
     if (!item) return;
     const index = STAGES.indexOf(item.stage);
     const next = STAGES[Math.max(0, Math.min(STAGES.length - 1, index + direction))];
-    candidates = candidates.map((candidate) => candidate.id === id ? { ...candidate, stage: next, updatedAt: nowIso() } : candidate);
+    updateCandidateStage(id, next, 'button');
+  }
+
+  function updateCandidateStage(id, nextStage, source) {
+    const item = candidates.find((c) => c.id === id);
+    if (!item || !STAGES.includes(nextStage)) return;
+    if (item.stage === nextStage) return;
+    candidates = candidates.map((candidate) => candidate.id === id ? { ...candidate, stage: nextStage, updatedAt: nowIso() } : candidate);
     saveCandidates();
-    addActivity(id, 'stage', `مرحله ${item.name} به «${next}» تغییر کرد.`);
+    addActivity(id, 'stage', `مرحله ${item.name} با ${source === 'drag' ? 'درگ و دراپ' : 'دکمه'} به «${nextStage}» تغییر کرد.`);
     renderAll();
-    toast(`مرحله به «${next}» تغییر کرد.`);
+    toast(`مرحله ${item.name} به «${nextStage}» تغییر کرد.`);
+  }
+
+  function bindPipelineDragAndDrop() {
+    $$('[data-drag-candidate]').forEach((card) => {
+      card.addEventListener('dragstart', (event) => {
+        draggedCandidateId = card.dataset.dragCandidate;
+        card.classList.add('dragging');
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', draggedCandidateId);
+      });
+      card.addEventListener('dragend', () => {
+        draggedCandidateId = null;
+        card.classList.remove('dragging');
+        $$('.kanban-col').forEach((col) => col.classList.remove('drag-over'));
+      });
+    });
+
+    $$('[data-kanban-stage]').forEach((column) => {
+      column.addEventListener('dragover', (event) => {
+        event.preventDefault();
+        column.classList.add('drag-over');
+      });
+      column.addEventListener('dragleave', (event) => {
+        if (!column.contains(event.relatedTarget)) column.classList.remove('drag-over');
+      });
+      column.addEventListener('drop', (event) => {
+        event.preventDefault();
+        const id = event.dataTransfer.getData('text/plain') || draggedCandidateId;
+        column.classList.remove('drag-over');
+        if (id) updateCandidateStage(id, column.dataset.kanbanStage, 'drag');
+      });
+    });
   }
 
   function selectedCandidateIdsFromPipeline() {
@@ -1517,6 +1628,130 @@
     saveActivities();
   }
 
+  function getManagerReportData() {
+    const period = $('#reportPeriodFilter')?.value || 'all';
+    const jobId = $('#reportJobFilter')?.value || 'all';
+    const selectedJob = jobs.find((job) => job.id === jobId);
+    const rows = candidates.filter((candidate) => (jobId === 'all' || candidate.jobId === jobId) && candidateWithinReportPeriod(candidate, period));
+    const total = rows.length;
+    const interviews = rows.filter(hasInterview).length;
+    const offers = rows.filter((c) => reachedStage(c, 'پیشنهاد همکاری')).length;
+    const accepted = rows.filter((c) => c.stage === 'پذیرفته شده').length;
+    const rejected = rows.filter((c) => c.stage === 'عدم همکاری').length;
+    const waiting = rows.filter((c) => c.stage === 'لیست انتظار').length;
+    const avgScore = total ? Math.round(rows.reduce((sum, c) => sum + Number(c.score || 0), 0) / total) : 0;
+    const next7Interviews = rows.filter((c) => isInterviewWithinDays(c, 7)).length;
+    const noResume = rows.filter((c) => !c.resumeUrl && !c.resumeFile?.name).length;
+    const idleCandidates = rows.filter((c) => !['پذیرفته شده','عدم همکاری'].includes(c.stage) && daysSince(c.updatedAt || c.createdAt) > 7).length;
+    const openJobs = jobs.filter((job) => job.status === 'باز').length;
+    const openTasks = tasks.filter((task) => task.status !== 'done').length;
+    const overdueTasks = tasks.filter((task) => task.status !== 'done' && task.dueDate && new Date(`${task.dueDate}T23:59:59`) < new Date()).length;
+    const smsTotal = logs.length;
+    const smsOk = logs.filter((log) => log.ok).length;
+    const stageCounts = Object.fromEntries(STAGES.map((stage) => [stage, rows.filter((c) => c.stage === stage).length]));
+    const jobRows = buildJobReportRows(rows, jobId);
+    const sourceRows = buildSourceRows(rows);
+    const recommendations = buildRecommendations({ total, interviews, accepted, overdueTasks, idleCandidates, noResume, next7Interviews, smsTotal, smsOk });
+    return {
+      period, jobId, jobLabel: selectedJob ? `فرصت «${selectedJob.title}»` : 'همه فرصت‌های شغلی', periodLabel: reportPeriodLabel(period),
+      rows, total, interviews, offers, accepted, rejected, waiting, avgScore, next7Interviews, noResume,
+      idleCandidates, openJobs, openTasks, overdueTasks, smsTotal, smsOk, stageCounts, jobRows, sourceRows, recommendations,
+      interviewRate: percent(interviews, total), offerRate: percent(offers, total), acceptRate: percent(accepted, total), rejectRate: percent(rejected, total), smsSuccessRate: percent(smsOk, smsTotal)
+    };
+  }
+
+  function buildJobReportRows(rows, jobId) {
+    const relevantJobs = jobId === 'all' ? jobs : jobs.filter((job) => job.id === jobId);
+    return relevantJobs.map((job) => {
+      const list = rows.filter((c) => c.jobId === job.id || (!c.jobId && c.role === job.title));
+      const total = list.length;
+      const interviews = list.filter(hasInterview).length;
+      const offers = list.filter((c) => reachedStage(c, 'پیشنهاد همکاری')).length;
+      const accepted = list.filter((c) => c.stage === 'پذیرفته شده').length;
+      const avgScore = total ? Math.round(list.reduce((sum, c) => sum + Number(c.score || 0), 0) / total) : 0;
+      return { title: job.title, department: job.department, status: job.status, total, interviews, offers, accepted, avgScore, interviewRate: percent(interviews, total) };
+    }).filter((row) => row.total > 0 || jobId !== 'all').sort((a, b) => b.total - a.total);
+  }
+
+  function buildSourceRows(rows) {
+    const map = new Map();
+    rows.forEach((candidate) => {
+      const key = candidate.source || 'نامشخص';
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(candidate);
+    });
+    return Array.from(map.entries()).map(([source, list]) => {
+      const total = list.length;
+      const interviews = list.filter(hasInterview).length;
+      const accepted = list.filter((c) => c.stage === 'پذیرفته شده').length;
+      return { source, total, interviews, accepted, conversion: percent(accepted, total) };
+    }).sort((a, b) => b.total - a.total || b.conversion - a.conversion);
+  }
+
+  function buildRecommendations(data) {
+    const items = [];
+    if (data.overdueTasks > 0) items.push(`${toFa(data.overdueTasks)} تسک معوق وجود دارد؛ اولویت روزانه HR را روی بستن این پیگیری‌ها بگذارید.`);
+    if (data.idleCandidates > 0) items.push(`${toFa(data.idleCandidates)} کاندیدا بیش از ۷ روز بدون بروزرسانی مانده‌اند؛ وضعیتشان باید تعیین تکلیف شود.`);
+    if (data.noResume > 0) items.push(`${toFa(data.noResume)} پرونده فاقد رزومه است؛ از کاندیدا لینک یا فایل رزومه دریافت شود.`);
+    if (data.total > 0 && percent(data.interviews, data.total) < 25) items.push('نرخ تبدیل به مصاحبه پایین است؛ معیار غربالگری یا کیفیت منابع جذب بررسی شود.');
+    if (data.next7Interviews > 0) items.push(`${toFa(data.next7Interviews)} مصاحبه در ۷ روز آینده دارید؛ یادآوری پیامکی و هماهنگی مصاحبه‌کننده‌ها را چک کنید.`);
+    if (data.smsTotal > 0 && percent(data.smsOk, data.smsTotal) < 90) items.push('نرخ موفقیت پیامک کمتر از ۹۰٪ است؛ API Key، خط ارسال و اعتبار SMS.ir بررسی شود.');
+    if (!items.length && data.total === 0) items.push('برای این فیلتر هنوز دیتای کافی ثبت نشده است.');
+    return items;
+  }
+
+  function exportManagerReport() {
+    const data = getManagerReportData();
+    const rows = [
+      ['section','metric','value','description'],
+      ['summary','period',data.periodLabel,'بازه گزارش'],
+      ['summary','job',data.jobLabel,'فیلتر فرصت شغلی'],
+      ['summary','total_candidates',data.total,'کل کاندیداهای فیلتر شده'],
+      ['summary','interviews',data.interviews,`${data.interviewRate}%`],
+      ['summary','offers',data.offers,`${data.offerRate}%`],
+      ['summary','accepted',data.accepted,`${data.acceptRate}%`],
+      ['summary','rejected',data.rejected,`${data.rejectRate}%`],
+      ['summary','avg_score',data.avgScore,'میانگین امتیاز'],
+      ['summary','overdue_tasks',data.overdueTasks,'تسک‌های معوق'],
+      [],
+      ['job','title','candidates','interviews','offers','accepted','avg_score','interview_rate'],
+      ...data.jobRows.map((row) => ['job', row.title, row.total, row.interviews, row.offers, row.accepted, row.avgScore, `${row.interviewRate}%`]),
+      [],
+      ['source','name','candidates','interviews','accepted','conversion_rate'],
+      ...data.sourceRows.map((row) => ['source', row.source, row.total, row.interviews, row.accepted, `${row.conversion}%`]),
+      [],
+      ['recommendation','text'],
+      ...data.recommendations.map((item) => ['recommendation', item])
+    ];
+    downloadCsv(rows, `iho-ats-manager-report-${dateStamp()}.csv`);
+  }
+
+  function candidateWithinReportPeriod(candidate, period) {
+    if (period === 'all') return true;
+    const days = Number(period || 0);
+    if (!days) return true;
+    const value = candidate.createdAt || candidate.updatedAt || candidate.date;
+    if (!value) return true;
+    return daysSince(value) <= days;
+  }
+
+  function reportPeriodLabel(period) { return period === 'all' ? 'کل دوره' : `${toFa(period)} روز اخیر`; }
+  function hasInterview(candidate) { return Boolean(candidate.date && candidate.time) || reachedStage(candidate, 'دعوت به مصاحبه'); }
+  function reachedStage(candidate, stage) { return STAGES.indexOf(candidate.stage) >= STAGES.indexOf(stage); }
+  function percent(value, total) { return total ? Math.round((Number(value || 0) / Number(total || 1)) * 100) : 0; }
+  function daysSince(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 0;
+    return Math.floor((Date.now() - date.getTime()) / 86400000);
+  }
+  function isInterviewWithinDays(candidate, days) {
+    if (!candidate.date || !candidate.time) return false;
+    const when = interviewDate(candidate);
+    if (!when) return false;
+    const diff = when.getTime() - Date.now();
+    return diff >= 0 && diff <= days * 86400000;
+  }
+
   function saveSettings(verify) {
     try {
       store.set(KEYS.settings, settings);
@@ -1545,7 +1780,7 @@
   }
 
   function exportAllJson() {
-    const data = { version: '4.0.0', exportedAt: nowIso(), settings, jobs, candidates, templates, tasks, logs, activities };
+    const data = { version: '5.0.0', exportedAt: nowIso(), settings, jobs, candidates, templates, tasks, logs, activities };
     downloadText(JSON.stringify(data, null, 2), `iho-ats-backup-${dateStamp()}.json`, 'application/json;charset=utf-8');
   }
 
