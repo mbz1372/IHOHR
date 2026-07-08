@@ -2,10 +2,10 @@
   "name": "iho-hr-sms-panel",
   "version": "1.0.1",
   "private": true,
-  "packageManager": "npm@10.8.2",
+  "packageManager": "npm@11.5.1",
   "engines": {
-    "node": "20.x",
-    "npm": "10.x"
+    "node": "24.x",
+    "npm": ">=11"
   },
   "scripts": {
     "dev": "next dev",
