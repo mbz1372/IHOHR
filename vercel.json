@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "installCommand": "node -e \"console.log('IHO HR Panel: zero dependencies, install skipped')\"",
+  "buildCommand": "node scripts/build-check.js",
+  "outputDirectory": "public",
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    }
+  ]
+}
