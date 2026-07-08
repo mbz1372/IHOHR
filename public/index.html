@@ -134,8 +134,16 @@
               <input id="searchInput" class="input" placeholder="جستجو نام، موبایل، نقش، منبع یا تگ..." />
               <select id="statusFilter" class="input"></select>
               <select id="jobFilter" class="input"></select>
+              <label class="btn ghost file-btn">ورود خروجی جابینجا<input type="file" id="jobinjaImportInput" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" /></label>
               <button class="btn primary" id="addCandidateFromTable">+ کاندیدا</button>
             </div>
+          </div>
+          <div class="import-box" id="jobinjaImportBox">
+            <div>
+              <b>ورود اطلاعات جابینجا</b>
+              <p>فایل Excel/CSV خروجی جابینجا را انتخاب کن؛ شناسه، عنوان آگهی، نام، موبایل، ایمیل، تاریخ ارسال و لینک رزومه به پرونده کاندیدا منتقل می‌شود. عنوان آگهی هم اگر در فرصت‌های شغلی نباشد خودکار ساخته می‌شود.</p>
+            </div>
+            <span class="pill gray" id="jobinjaImportStatus">آماده ایمپورت</span>
           </div>
           <div class="table-wrap">
             <table class="table">
@@ -144,9 +152,9 @@
                   <th>کاندیدا</th>
                   <th>موبایل</th>
                   <th>موقعیت</th>
+                  <th>شناسه/تاریخ</th>
                   <th>مرحله</th>
-                  <th>مصاحبه</th>
-                  <th>امتیاز</th>
+                  <th>رزومه</th>
                   <th>اقدام</th>
                 </tr>
               </thead>
@@ -243,7 +251,7 @@
 
             <div class="message-meta">
               <span id="smsLength">۰ کاراکتر</span>
-              <span>متغیرها: {name} {role} {job} {date} {time} {location} {company} {hrName} {link}</span>
+              <span>متغیرها: {name} {role} {job} {date} {time} {location} {company} {hrName} {link} {resumeLink}</span>
             </div>
 
             <div class="actions-row">
@@ -416,6 +424,12 @@
       </div>
       <form id="candidateForm" class="form-grid two-cols">
         <input type="hidden" id="candidateId" />
+        <label>شناسه جابینجا
+          <input class="input" id="candidateJobinjaId" placeholder="مثلاً 81743702" />
+        </label>
+        <label>تاریخ ارسال درخواست
+          <input class="input" id="candidateAppliedAt" placeholder="مثلاً 1405/04/14" />
+        </label>
         <label>نام و نام خانوادگی
           <input class="input" id="candidateName" required />
         </label>
@@ -457,7 +471,11 @@
           <input class="input" id="candidateAvailability" placeholder="فوری، دو هفته دیگر..." />
         </label>
         <label>لینک رزومه
-          <input class="input" id="candidateResume" placeholder="لینک فایل یا Drive" />
+          <input class="input" id="candidateResume" placeholder="لینک فایل، جابینجا یا Drive" />
+        </label>
+        <label>پیوست فایل رزومه محلی
+          <input class="input" id="candidateResumeFile" type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
+          <span class="help-text" id="resumeFileState">فایلی انتخاب نشده است.</span>
         </label>
         <label class="full">محل مصاحبه
           <input class="input" id="candidateLocation" />

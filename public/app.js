@@ -111,6 +111,7 @@
     bindNavigation();
     bindJobs();
     bindCandidateForm();
+    bindJobinjaImport();
     bindPipeline();
     bindTasks();
     bindTemplates();
@@ -256,12 +257,14 @@
       if (job && !$('#candidateRole').value.trim()) $('#candidateRole').value = job.title;
     });
 
-    $('#candidateForm').addEventListener('submit', (event) => {
+    $('#candidateForm').addEventListener('submit', async (event) => {
       event.preventDefault();
       const id = $('#candidateId').value || uid();
       const old = candidates.find((item) => item.id === id);
       const candidate = normalizeCandidate({
         id,
+        jobinjaId: $('#candidateJobinjaId').value.trim(),
+        appliedAt: $('#candidateAppliedAt').value.trim(),
         name: $('#candidateName').value.trim(),
         phone: normalizeMobile($('#candidatePhone').value),
         email: $('#candidateEmail').value.trim(),
@@ -275,6 +278,8 @@
         expectedSalary: $('#candidateSalary').value.trim(),
         availability: $('#candidateAvailability').value.trim(),
         resumeUrl: $('#candidateResume').value.trim(),
+        resumeFile: old?.resumeFile || null,
+        rawJobinja: old?.rawJobinja || null,
         location: $('#candidateLocation').value.trim() || settings.defaultLocation,
         tags: $('#candidateTags').value.trim(),
         notes: $('#candidateNotes').value.trim(),
@@ -293,6 +298,10 @@
       if (!candidate.name) return toast('نام کاندیدا الزامی است.');
       if (!/^09\d{9}$/.test(candidate.phone)) return toast('شماره موبایل معتبر نیست. فرمت درست: 09xxxxxxxxx');
       if (!candidate.role) return toast('موقعیت شغلی الزامی است.');
+      const localResumeFile = $('#candidateResumeFile')?.files?.[0];
+      if (localResumeFile) {
+        candidate.resumeFile = await saveResumeFileForCandidate(id, localResumeFile);
+      }
 
       candidates = old ? candidates.map((item) => item.id === id ? candidate : item) : [candidate, ...candidates];
       saveCandidates();
@@ -303,6 +312,10 @@
       toast('کاندیدا ذخیره شد و تنظیمات فعلی اعمال شد.');
     });
 
+    $('#candidateResumeFile').addEventListener('change', () => {
+      const file = $('#candidateResumeFile').files?.[0];
+      $('#resumeFileState').textContent = file ? `فایل انتخاب شد: ${file.name} (${formatBytes(file.size)})` : 'فایلی انتخاب نشده است.';
+    });
     $('#searchInput').addEventListener('input', renderCandidatesTable);
     $('#statusFilter').addEventListener('change', renderCandidatesTable);
     $('#jobFilter').addEventListener('change', renderCandidatesTable);
@@ -312,6 +325,8 @@
     const item = candidate ? normalizeCandidate(candidate) : null;
     $('#candidateModalTitle').textContent = item ? 'ویرایش کاندیدا' : 'افزودن کاندیدا';
     $('#candidateId').value = item?.id || '';
+    $('#candidateJobinjaId').value = item?.jobinjaId || '';
+    $('#candidateAppliedAt').value = item?.appliedAt || '';
     $('#candidateName').value = item?.name || '';
     $('#candidatePhone').value = item?.phone || '';
     $('#candidateEmail').value = item?.email || '';
@@ -326,6 +341,8 @@
     $('#candidateSalary').value = item?.expectedSalary || '';
     $('#candidateAvailability').value = item?.availability || '';
     $('#candidateResume').value = item?.resumeUrl || '';
+    $('#candidateResumeFile').value = '';
+    $('#resumeFileState').textContent = item?.resumeFile?.name ? `پیوست فعلی: ${item.resumeFile.name} (${formatBytes(item.resumeFile.size || 0)})` : 'فایلی انتخاب نشده است.';
     $('#candidateLocation').value = item?.location || settings.defaultLocation;
     $('#candidateTags').value = item?.tags || '';
     $('#candidateNotes').value = item?.notes || '';
@@ -685,7 +702,7 @@
     const stage = $('#statusFilter')?.value || 'all';
     const jobId = $('#jobFilter')?.value || 'all';
     const rows = candidates.filter((item) => {
-      const text = `${item.name} ${item.phone} ${item.email} ${item.role} ${item.source} ${item.tags} ${candidateJobTitle(item)}`.toLowerCase();
+      const text = `${item.name} ${item.phone} ${item.email} ${item.role} ${item.source} ${item.tags} ${candidateJobTitle(item)} ${item.jobinjaId || ''} ${item.appliedAt || ''}`.toLowerCase();
       return (!q || text.includes(q)) && (stage === 'all' || item.stage === stage) && (jobId === 'all' || item.jobId === jobId);
     });
 
@@ -698,10 +715,10 @@
           </div>
         </td>
         <td>${toFa(item.phone)}</td>
-        <td>${escapeHtml(candidateJobTitle(item))}</td>
-        <td><span class="pill ${stageClass(item.stage)}">${escapeHtml(item.stage)}</span></td>
-        <td>${item.date ? `${formatDate(item.date)}<br><span class="muted">ساعت ${toFa(item.time || '-')}</span>` : '<span class="muted">ثبت نشده</span>'}</td>
-        <td>${toFa(item.score || 0)}</td>
+        <td>${escapeHtml(candidateJobTitle(item))}<div class="muted">امتیاز ${toFa(item.score || 0)}</div></td>
+        <td>${item.jobinjaId ? `<span class="pill blue">${toFa(item.jobinjaId)}</span>` : '<span class="muted">بدون شناسه</span>'}<br><span class="muted">${escapeHtml(item.appliedAt || item.createdAt?.slice(0,10) || '-')}</span></td>
+        <td><span class="pill ${stageClass(item.stage)}">${escapeHtml(item.stage)}</span>${item.date ? `<div class="muted">مصاحبه: ${formatDate(item.date)} ${toFa(item.time || '')}</div>` : ''}</td>
+        <td>${resumeActionsHtml(item)}</td>
         <td>
           <div class="actions-row compact">
             <button class="btn ghost small" data-edit-candidate="${item.id}">ویرایش</button>
@@ -910,12 +927,22 @@
       const item = candidates.find((candidate) => candidate.id === btn.dataset.editCandidate);
       if (item) openCandidateModal(item);
     }));
+    $$('[data-open-resume-link]').forEach((btn) => btn.addEventListener('click', () => {
+      const item = candidates.find((candidate) => candidate.id === btn.dataset.openResumeLink);
+      if (item?.resumeUrl) window.open(item.resumeUrl, '_blank', 'noopener');
+    }));
+    $$('[data-open-local-resume]').forEach((btn) => btn.addEventListener('click', async () => {
+      const item = candidates.find((candidate) => candidate.id === btn.dataset.openLocalResume);
+      if (!item?.resumeFile?.id) return toast('فایل رزومه محلی برای این کاندیدا ثبت نشده است.');
+      await openStoredResumeFile(item.resumeFile.id);
+    }));
     $$('[data-delete-candidate]').forEach((btn) => btn.addEventListener('click', () => {
       const item = candidates.find((candidate) => candidate.id === btn.dataset.deleteCandidate);
       if (!item || !confirm(`کاندیدای ${item.name} حذف شود؟`)) return;
       candidates = candidates.filter((candidate) => candidate.id !== item.id);
       tasks = tasks.map((task) => task.candidateId === item.id ? { ...task, candidateId: '' } : task);
       selectedCandidates.delete(item.id);
+      if (item.resumeFile?.id) deleteStoredResumeFile(item.resumeFile.id).catch(() => {});
       saveCandidates(); saveTasks();
       addActivity(item.id, 'candidate_delete', `کاندیدا حذف شد: ${item.name}`);
       fillStaticSelects(); renderAll(); toast('کاندیدا حذف شد.');
@@ -1033,6 +1060,7 @@
       .replaceAll('{company}', settings.companyName || '')
       .replaceAll('{hrName}', settings.hrName || '')
       .replaceAll('{link}', settings.locationLink || '')
+      .replaceAll('{resumeLink}', candidate.resumeUrl || '')
       .replaceAll('{hrPhone}', settings.hrPhone || '');
   }
 
@@ -1052,10 +1080,11 @@
     const stage = item.stage || item.status || 'رزومه دریافت شد';
     const scorecard = item.scorecard || {};
     return {
-      id: item.id || uid(), name: item.name || '', phone: normalizeMobile(item.phone || item.mobile || ''), email: item.email || '',
-      jobId: item.jobId || '', role: item.role || item.job || '', source: item.source || '', stage, date: item.date || '', time: item.time || '',
-      interviewer: item.interviewer || '', expectedSalary: item.expectedSalary || '', availability: item.availability || '', resumeUrl: item.resumeUrl || '',
-      location: item.location || settings.defaultLocation || DEFAULT_SETTINGS.defaultLocation, tags: item.tags || '', notes: item.notes || '', score: Number(item.score || 0),
+      id: item.id || uid(), jobinjaId: item.jobinjaId || item.jobinja_id || item.applicationId || '', appliedAt: item.appliedAt || item.applied_at || '',
+      name: item.name || '', phone: normalizeMobile(item.phone || item.mobile || ''), email: item.email || '',
+      jobId: item.jobId || '', role: item.role || item.job || item.adTitle || '', source: item.source || '', stage, date: item.date || '', time: item.time || '',
+      interviewer: item.interviewer || '', expectedSalary: item.expectedSalary || '', availability: item.availability || '', resumeUrl: item.resumeUrl || item.resumeLink || '', resumeFile: item.resumeFile || null,
+      location: item.location || settings.defaultLocation || DEFAULT_SETTINGS.defaultLocation, tags: item.tags || '', notes: item.notes || '', rawJobinja: item.rawJobinja || null, importedAt: item.importedAt || '', score: Number(item.score || 0),
       scorecard: {
         technical: Number(scorecard.technical || 0), communication: Number(scorecard.communication || 0), culture: Number(scorecard.culture || 0), motivation: Number(scorecard.motivation || 0), availability: Number(scorecard.availability || 0)
       },
@@ -1079,6 +1108,369 @@
       { id: uid(), title: 'تماس با کاندیداهای مصاحبه فردا', candidateId: '', dueDate: todayPlus(0), owner: settings.hrName, priority: 'بالا', notes: 'تأیید حضور و ارسال آدرس.', status: 'open', createdAt: nowIso() },
       { id: uid(), title: 'آماده‌سازی فرم ارزیابی مصاحبه دوم', candidateId: '', dueDate: todayPlus(1), owner: settings.hrName, priority: 'متوسط', notes: '', status: 'open', createdAt: nowIso() }
     ];
+  }
+
+
+  function bindJobinjaImport() {
+    const input = $('#jobinjaImportInput');
+    if (!input) return;
+    input.addEventListener('change', importJobinjaFile);
+  }
+
+  async function importJobinjaFile(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const status = $('#jobinjaImportStatus');
+    status.textContent = 'در حال خواندن فایل...';
+    status.className = 'pill yellow';
+    try {
+      const parsed = await readTabularFile(file);
+      const result = importJobinjaRows(parsed.rows, parsed.fileType);
+      saveJobs(); saveCandidates(); saveActivities();
+      fillStaticSelects(); renderAll();
+      status.textContent = `ایمپورت شد: ${toFa(result.created)} جدید، ${toFa(result.updated)} بروزرسانی، ${toFa(result.skipped)} رد شده`;
+      status.className = 'pill green';
+      toast(`خروجی جابینجا وارد شد: ${toFa(result.created)} کاندیدای جدید و ${toFa(result.updated)} بروزرسانی.`);
+    } catch (error) {
+      console.error(error);
+      status.textContent = 'خطا در ایمپورت';
+      status.className = 'pill red';
+      toast('ایمپورت انجام نشد: ' + (error.message || error));
+    }
+    event.target.value = '';
+  }
+
+  async function readTabularFile(file) {
+    const name = file.name.toLowerCase();
+    if (name.endsWith('.csv')) {
+      const text = await file.text();
+      return { fileType: 'csv', rows: rowsToObjects(parseCsvRows(text)) };
+    }
+    if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+      const arrayBuffer = await file.arrayBuffer();
+      const rows = await parseXlsxRows(arrayBuffer);
+      return { fileType: 'xlsx', rows: rowsToObjects(rows) };
+    }
+    throw new Error('فرمت فایل باید xlsx یا csv باشد.');
+  }
+
+  function rowsToObjects(rowRecords) {
+    const nonEmpty = rowRecords.filter((row) => row && row.cells && row.cells.some((cell) => String(cell || '').trim()));
+    if (nonEmpty.length < 2) return [];
+    const headers = nonEmpty[0].cells.map(cleanHeader);
+    return nonEmpty.slice(1).map((row) => {
+      const obj = { __raw: {}, __links: {} };
+      headers.forEach((header, index) => {
+        if (!header) return;
+        const value = String(row.cells[index] ?? '').trim();
+        obj[header] = value;
+        obj.__raw[header] = value;
+        if (row.links && row.links[index]) obj.__links[header] = row.links[index];
+      });
+      return obj;
+    });
+  }
+
+  function importJobinjaRows(rows, fileType) {
+    let created = 0, updated = 0, skipped = 0;
+    rows.forEach((row) => {
+      const jobinjaId = pickValue(row, '#شناسه', 'شناسه', 'id', 'application id');
+      const adTitle = pickValue(row, 'عنوان آگهی', 'عنوان اگهی', 'عنوان شغلی', 'job', 'job title');
+      const name = pickValue(row, 'نام متقاضی', 'نام و نام خانوادگی', 'نام', 'candidate name');
+      const phone = normalizeMobile(pickValue(row, 'شماره تماس متقاضی', 'شماره تماس', 'موبایل', 'تلفن', 'mobile', 'phone'));
+      const email = pickValue(row, 'ایمیل', 'email');
+      const appliedAt = pickValue(row, 'تاریخ ارسال درخواست همکاری', 'تاریخ ارسال', 'تاریخ درخواست', 'applied at');
+      const resumeHeader = findHeader(row, 'آدرس فایل رزومه متقاضی', 'رزومه', 'لینک رزومه', 'resume');
+      const resumeLink = resumeHeader ? (row.__links?.[resumeHeader] || row[resumeHeader] || '') : '';
+      if (!name || !phone) { skipped += 1; return; }
+      const jobId = findOrCreateJobFromJobinja(adTitle);
+      const old = candidates.find((candidate) => (jobinjaId && candidate.jobinjaId === jobinjaId) || (!jobinjaId && candidate.phone === phone && candidateJobTitle(candidate) === adTitle));
+      const merged = normalizeCandidate({
+        ...(old || {}),
+        id: old?.id || uid(),
+        jobinjaId: jobinjaId || old?.jobinjaId || '',
+        appliedAt: appliedAt || old?.appliedAt || '',
+        name,
+        phone,
+        email: email || old?.email || '',
+        jobId: jobId || old?.jobId || '',
+        role: adTitle || old?.role || '',
+        source: old?.source || 'جابینجا',
+        stage: old?.stage || 'رزومه دریافت شد',
+        resumeUrl: resumeLink && /^https?:\/\//i.test(resumeLink) ? resumeLink : (old?.resumeUrl || ''),
+        tags: mergeTags(old?.tags, 'جابینجا'),
+        rawJobinja: row.__raw || row,
+        importedAt: nowIso(),
+        createdAt: old?.createdAt || nowIso(),
+        updatedAt: nowIso()
+      });
+      if (old) {
+        candidates = candidates.map((candidate) => candidate.id === old.id ? merged : candidate);
+        updated += 1;
+      } else {
+        candidates.unshift(merged);
+        created += 1;
+      }
+    });
+    if (created || updated) addActivity(null, 'jobinja_import', `ایمپورت جابینجا انجام شد: ${created} جدید، ${updated} بروزرسانی از فایل ${fileType}.`);
+    return { created, updated, skipped };
+  }
+
+  function findOrCreateJobFromJobinja(title) {
+    const clean = String(title || '').trim();
+    if (!clean) return '';
+    const existing = jobs.find((job) => normalizeText(job.title) === normalizeText(clean));
+    if (existing) return existing.id;
+    const job = { id: uid(), title: clean, department: 'منابع انسانی', city: 'مشهد', owner: settings.hrName || 'HR', status: 'باز', priority: 'متوسط', openings: 1, type: '', description: 'ایجاد شده از خروجی جابینجا.', createdAt: nowIso(), source: 'جابینجا' };
+    jobs.unshift(job);
+    return job.id;
+  }
+
+  function pickValue(row, ...names) {
+    const key = findHeader(row, ...names);
+    return key ? String(row[key] ?? '').trim() : '';
+  }
+
+  function findHeader(row, ...names) {
+    const keys = Object.keys(row).filter((key) => !key.startsWith('__'));
+    const normalizedNames = names.map(normalizeText);
+    return keys.find((key) => normalizedNames.includes(normalizeText(key))) || keys.find((key) => normalizedNames.some((name) => normalizeText(key).includes(name) || name.includes(normalizeText(key))));
+  }
+
+  function cleanHeader(value) {
+    return String(value || '').replace(/^\uFEFF/, '').replace(/\s+/g, ' ').trim();
+  }
+
+  function mergeTags(oldTags, nextTag) {
+    const set = new Set(parseList(oldTags));
+    if (nextTag) set.add(nextTag);
+    return Array.from(set).join('، ');
+  }
+
+  function normalizeText(value) {
+    return String(value || '').toLowerCase().replace(/[ي]/g, 'ی').replace(/[ك]/g, 'ک').replace(/[\s\u200c_\-#]+/g, '').trim();
+  }
+
+  function parseCsvRows(text) {
+    const rows = [];
+    let row = [], cell = '', inQuotes = false;
+    for (let i = 0; i < text.length; i += 1) {
+      const ch = text[i];
+      const next = text[i + 1];
+      if (ch === '"' && inQuotes && next === '"') { cell += '"'; i += 1; continue; }
+      if (ch === '"') { inQuotes = !inQuotes; continue; }
+      if (ch === ',' && !inQuotes) { row.push(cell); cell = ''; continue; }
+      if ((ch === '\n' || ch === '\r') && !inQuotes) {
+        if (ch === '\r' && next === '\n') i += 1;
+        row.push(cell); rows.push({ cells: row, links: {} }); row = []; cell = ''; continue;
+      }
+      cell += ch;
+    }
+    if (cell || row.length) { row.push(cell); rows.push({ cells: row, links: {} }); }
+    return rows;
+  }
+
+  async function parseXlsxRows(arrayBuffer) {
+    const entries = await unzipXlsxEntries(arrayBuffer);
+    const sharedStrings = parseSharedStrings(entries['xl/sharedStrings.xml'] || '');
+    const sheetPath = firstWorksheetPath(entries) || 'xl/worksheets/sheet1.xml';
+    const relsPath = sheetPath.replace('/worksheets/', '/worksheets/_rels/') + '.rels';
+    const relationships = parseRelationships(entries[relsPath] || '');
+    const xml = entries[sheetPath];
+    if (!xml) throw new Error('Sheet اصلی فایل xlsx پیدا نشد.');
+    return parseWorksheetXml(xml, sharedStrings, relationships);
+  }
+
+  function firstWorksheetPath(entries) {
+    try {
+      const workbook = xmlDoc(entries['xl/workbook.xml']);
+      const sheets = Array.from(workbook.getElementsByTagNameNS('*', 'sheet'));
+      const first = sheets[0];
+      if (!first) return '';
+      const rid = first.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id') || first.getAttribute('r:id');
+      const rels = parseRelationships(entries['xl/_rels/workbook.xml.rels'] || '');
+      const target = rels[rid];
+      if (!target) return '';
+      return target.startsWith('/') ? target.slice(1) : 'xl/' + target.replace(/^\.\//, '');
+    } catch (_) { return ''; }
+  }
+
+  function parseSharedStrings(xml) {
+    if (!xml) return [];
+    const doc = xmlDoc(xml);
+    return Array.from(doc.getElementsByTagNameNS('*', 'si')).map((si) => Array.from(si.getElementsByTagNameNS('*', 't')).map((t) => t.textContent || '').join(''));
+  }
+
+  function parseRelationships(xml) {
+    if (!xml) return {};
+    const doc = xmlDoc(xml);
+    const map = {};
+    Array.from(doc.getElementsByTagNameNS('*', 'Relationship')).forEach((rel) => {
+      map[rel.getAttribute('Id')] = rel.getAttribute('Target');
+    });
+    return map;
+  }
+
+  function parseWorksheetXml(xml, sharedStrings, relationships) {
+    const doc = xmlDoc(xml);
+    const hyperlinkByCell = {};
+    Array.from(doc.getElementsByTagNameNS('*', 'hyperlink')).forEach((link) => {
+      const ref = link.getAttribute('ref') || '';
+      const rid = link.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id') || link.getAttribute('r:id');
+      if (!ref || !rid || !relationships[rid]) return;
+      expandCellRefs(ref).forEach((cellRef) => { hyperlinkByCell[cellRef] = relationships[rid]; });
+    });
+    return Array.from(doc.getElementsByTagNameNS('*', 'row')).map((rowNode) => {
+      const cells = [];
+      const links = {};
+      Array.from(rowNode.getElementsByTagNameNS('*', 'c')).forEach((cellNode) => {
+        const ref = cellNode.getAttribute('r') || '';
+        const colIndex = columnIndex(ref.replace(/\d+/g, ''));
+        const type = cellNode.getAttribute('t') || '';
+        let value = '';
+        if (type === 'inlineStr') {
+          value = Array.from(cellNode.getElementsByTagNameNS('*', 't')).map((t) => t.textContent || '').join('');
+        } else {
+          const v = cellNode.getElementsByTagNameNS('*', 'v')[0]?.textContent || '';
+          value = type === 's' ? (sharedStrings[Number(v)] || '') : v;
+        }
+        cells[colIndex] = value;
+        if (hyperlinkByCell[ref]) links[colIndex] = hyperlinkByCell[ref];
+      });
+      return { cells, links };
+    });
+  }
+
+  async function unzipXlsxEntries(arrayBuffer) {
+    if (!('DecompressionStream' in window)) throw new Error('برای ورود مستقیم xlsx به مرورگر Chrome/Edge جدید نیاز است. راه جایگزین: فایل را از Excel به CSV UTF-8 خروجی بگیر و وارد کن.');
+    const view = new DataView(arrayBuffer);
+    const decoder = new TextDecoder('utf-8');
+    const entries = {};
+    let eocd = -1;
+    for (let i = view.byteLength - 22; i >= Math.max(0, view.byteLength - 66000); i -= 1) {
+      if (view.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+    }
+    if (eocd < 0) throw new Error('ساختار فایل xlsx معتبر نیست.');
+    const total = view.getUint16(eocd + 10, true);
+    let pos = view.getUint32(eocd + 16, true);
+    for (let i = 0; i < total; i += 1) {
+      if (view.getUint32(pos, true) !== 0x02014b50) throw new Error('Central directory فایل xlsx خوانده نشد.');
+      const method = view.getUint16(pos + 10, true);
+      const compressedSize = view.getUint32(pos + 20, true);
+      const nameLength = view.getUint16(pos + 28, true);
+      const extraLength = view.getUint16(pos + 30, true);
+      const commentLength = view.getUint16(pos + 32, true);
+      const localOffset = view.getUint32(pos + 42, true);
+      const name = decoder.decode(arrayBuffer.slice(pos + 46, pos + 46 + nameLength));
+      const localNameLength = view.getUint16(localOffset + 26, true);
+      const localExtraLength = view.getUint16(localOffset + 28, true);
+      const dataStart = localOffset + 30 + localNameLength + localExtraLength;
+      const compressed = arrayBuffer.slice(dataStart, dataStart + compressedSize);
+      let data;
+      if (method === 0) data = compressed;
+      else if (method === 8) data = await inflateRaw(compressed);
+      else { pos += 46 + nameLength + extraLength + commentLength; continue; }
+      if (name.endsWith('.xml') || name.endsWith('.rels')) entries[name] = decoder.decode(data);
+      pos += 46 + nameLength + extraLength + commentLength;
+    }
+    return entries;
+  }
+
+  async function inflateRaw(buffer) {
+    const stream = new Blob([buffer]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return await new Response(stream).arrayBuffer();
+  }
+
+  function xmlDoc(xml) { return new DOMParser().parseFromString(xml, 'application/xml'); }
+  function columnIndex(letters) { return letters.split('').reduce((sum, ch) => sum * 26 + ch.charCodeAt(0) - 64, 0) - 1; }
+  function columnLetters(index) { let s = ''; index += 1; while (index > 0) { const m = (index - 1) % 26; s = String.fromCharCode(65 + m) + s; index = Math.floor((index - 1) / 26); } return s; }
+  function expandCellRefs(ref) {
+    if (!ref.includes(':')) return [ref];
+    const [start, end] = ref.split(':');
+    const sc = columnIndex(start.replace(/\d+/g, '')), ec = columnIndex(end.replace(/\d+/g, ''));
+    const sr = Number(start.replace(/\D+/g, '')), er = Number(end.replace(/\D+/g, ''));
+    const refs = [];
+    for (let r = sr; r <= er; r += 1) for (let c = sc; c <= ec; c += 1) refs.push(columnLetters(c) + r);
+    return refs;
+  }
+
+  function resumeActionsHtml(candidate) {
+    const parts = [];
+    if (candidate.resumeUrl) parts.push(`<button class="btn ghost small" data-open-resume-link="${candidate.id}">لینک جابینجا</button>`);
+    if (candidate.resumeFile?.id) parts.push(`<button class="btn ghost small" data-open-local-resume="${candidate.id}">فایل محلی</button><div class="muted">${escapeHtml(candidate.resumeFile.name || '')}</div>`);
+    return parts.length ? `<div class="actions-row compact resume-actions">${parts.join('')}</div>` : '<span class="muted">ندارد</span>';
+  }
+
+  function openFileDb() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('iho_ats_files_v3', 1);
+      request.onupgradeneeded = () => request.result.createObjectStore('resumes');
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error('IndexedDB در دسترس نیست.'));
+    });
+  }
+
+  async function saveResumeFileForCandidate(candidateId, file) {
+    const max = 12 * 1024 * 1024;
+    if (file.size > max) throw new Error('حجم فایل رزومه بیشتر از ۱۲ مگابایت است.');
+    const fileId = `resume_${candidateId}_${Date.now()}`;
+    const db = await openFileDb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('resumes', 'readwrite');
+      tx.objectStore('resumes').put(file, fileId);
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error || new Error('ذخیره فایل رزومه انجام نشد.'));
+    });
+    db.close();
+    return { id: fileId, name: file.name, type: file.type, size: file.size, updatedAt: nowIso() };
+  }
+
+  async function getStoredResumeFile(fileId) {
+    const db = await openFileDb();
+    const file = await new Promise((resolve, reject) => {
+      const tx = db.transaction('resumes', 'readonly');
+      const request = tx.objectStore('resumes').get(fileId);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error('فایل رزومه پیدا نشد.'));
+    });
+    db.close();
+    return file;
+  }
+
+  async function openStoredResumeFile(fileId) {
+    const popup = window.open('', '_blank');
+    try {
+      const file = await getStoredResumeFile(fileId);
+      if (!file) throw new Error('فایل رزومه محلی پیدا نشد. شاید کش مرورگر پاک شده باشد.');
+      const url = URL.createObjectURL(file);
+      if (popup) popup.location.href = url;
+      else {
+        const a = document.createElement('a');
+        a.href = url; a.download = file.name || 'resume'; a.click();
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (error) {
+      if (popup) popup.close();
+      toast(error.message || 'باز کردن فایل رزومه انجام نشد.');
+    }
+  }
+
+  async function deleteStoredResumeFile(fileId) {
+    const db = await openFileDb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('resumes', 'readwrite');
+      tx.objectStore('resumes').delete(fileId);
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error || new Error('حذف فایل رزومه انجام نشد.'));
+    });
+    db.close();
+  }
+
+  function formatBytes(bytes) {
+    const n = Number(bytes || 0);
+    if (n < 1024) return `${toFa(n)} بایت`;
+    if (n < 1024 * 1024) return `${toFa((n / 1024).toFixed(1))} KB`;
+    return `${toFa((n / (1024 * 1024)).toFixed(1))} MB`;
   }
 
   function addActivity(candidateId, type, text) {
@@ -1105,7 +1497,7 @@
   function saveActivities() { store.set(KEYS.activities, activities); }
 
   function exportCandidates() {
-    const rows = [['name','phone','email','job','stage','source','date','time','interviewer','score','tags','notes'], ...candidates.map((c) => [c.name, c.phone, c.email, candidateJobTitle(c), c.stage, c.source, c.date, c.time, c.interviewer, c.score, c.tags, c.notes])];
+    const rows = [['jobinjaId','appliedAt','name','phone','email','job','stage','source','resumeUrl','localResume','date','time','interviewer','score','tags','notes'], ...candidates.map((c) => [c.jobinjaId, c.appliedAt, c.name, c.phone, c.email, candidateJobTitle(c), c.stage, c.source, c.resumeUrl, c.resumeFile?.name || '', c.date, c.time, c.interviewer, c.score, c.tags, c.notes])];
     downloadCsv(rows, `iho-ats-candidates-${dateStamp()}.csv`);
   }
 
@@ -1174,6 +1566,7 @@
     let mobile = String(value || '').trim().replace(/[\s\-()]/g, '');
     if (mobile.startsWith('+98')) mobile = '0' + mobile.slice(3);
     if (mobile.startsWith('98')) mobile = '0' + mobile.slice(2);
+    if (/^9\d{9}$/.test(mobile)) mobile = '0' + mobile;
     return mobile;
   }
   function normalizeSendDateTime(value) { if (!value) return undefined; const date = new Date(value); return Number.isNaN(date.getTime()) ? undefined : date.toISOString(); }

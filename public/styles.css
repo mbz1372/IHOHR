@@ -217,3 +217,14 @@ label { display: grid; gap: 7px; color: #334155; font-size: 13px; font-weight: 8
   .form-grid, .form-grid.two-cols, .form-grid.three, .form-grid.five { grid-template-columns: 1fr; }
   .pipeline-row { grid-template-columns: 110px 1fr 28px; }
 }
+
+.import-box {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  border: 1px dashed #93c5fd; background: linear-gradient(135deg, #eff6ff, #f8fafc);
+  border-radius: 18px; padding: 14px; margin: 12px 0 14px;
+}
+.import-box p { margin: 6px 0 0; color: var(--muted); line-height: 1.9; font-size: 12px; }
+.help-text { display:block; margin-top: 6px; color: var(--muted); font-size: 11px; line-height: 1.8; }
+.resume-actions { max-width: 190px; }
+.resume-actions .muted { width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 900px) { .import-box { flex-direction: column; align-items: stretch; } }
