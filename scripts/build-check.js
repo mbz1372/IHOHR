@@ -6,6 +6,8 @@ const required = [
   'public/index.html',
   'public/styles.css',
   'public/app.js',
+  'public/assets/logo.svg',
+  'public/assets/favicon.svg',
   'api/sms.js',
   'vercel.json',
   'package.json'
@@ -29,6 +31,8 @@ if (!html.includes('id="settingsForm"')) ok = fail('settings form not found');
 if (!js.includes('saveSettings')) ok = fail('settings persistence not found');
 if (!js.includes('callSmsApi')) ok = fail('SMS caller not found');
 if (!js.includes('renderPipelineBoard')) ok = fail('ATS pipeline not found');
+if (!js.includes('applyBrandAssets')) ok = fail('brand asset support not found');
+if (!html.includes('id="faviconLink"')) ok = fail('favicon link not found');
 if (css.length < 1000) ok = fail('CSS seems too small');
 
 function fail(msg) { console.error(msg); return false; }

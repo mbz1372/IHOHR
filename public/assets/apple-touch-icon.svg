@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs><linearGradient id="g" x1="9" y1="6" x2="56" y2="58"><stop stop-color="#0f3b63"/><stop offset="1" stop-color="#0ea5a3"/></linearGradient></defs>
+  <rect x="6" y="6" width="52" height="52" rx="16" fill="url(#g)"/>
+  <text x="32" y="39" text-anchor="middle" font-family="Arial, sans-serif" font-weight="800" font-size="20" fill="white">HR</text>
+</svg>

@@ -5,13 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#0f3b63" />
   <title>IHO ATS | پنل جذب و پیامک منابع انسانی ایران‌هتل</title>
+  <link id="faviconLink" rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.svg" />
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
   <div class="shell">
     <aside class="sidebar" id="sidebar">
       <div class="brand">
-        <div class="brand-mark">ATS</div>
+        <div class="brand-logo-wrap">
+          <img id="brandLogo" src="/assets/logo.svg" alt="لوگوی پنل" />
+          <span id="brandLogoFallback">ATS</span>
+        </div>
         <div>
           <h1 id="brandTitle">IHO ATS</h1>
           <p id="brandSubTitle">ایران‌هتل آنلاین</p>
@@ -19,16 +24,16 @@
       </div>
 
       <nav class="nav" aria-label="منوی اصلی">
-        <button class="nav-item active" data-view="dashboard">داشبورد</button>
-        <button class="nav-item" data-view="jobs">فرصت‌های شغلی</button>
-        <button class="nav-item" data-view="candidates">کاندیداها</button>
-        <button class="nav-item" data-view="pipeline">پایپ‌لاین جذب</button>
-        <button class="nav-item" data-view="interviews">مصاحبه‌ها</button>
-        <button class="nav-item" data-view="tasks">تسک‌های HR</button>
-        <button class="nav-item" data-view="messages">مرکز پیامک</button>
-        <button class="nav-item" data-view="templates">قالب‌ها</button>
-        <button class="nav-item" data-view="reports">گزارش‌ها</button>
-        <button class="nav-item" data-view="settings">تنظیمات</button>
+        <button class="nav-item active" data-icon="🏠" data-view="dashboard">داشبورد</button>
+        <button class="nav-item" data-icon="💼" data-view="jobs">فرصت‌های شغلی</button>
+        <button class="nav-item" data-icon="👥" data-view="candidates">کاندیداها</button>
+        <button class="nav-item" data-icon="🧩" data-view="pipeline">پایپ‌لاین جذب</button>
+        <button class="nav-item" data-icon="📅" data-view="interviews">مصاحبه‌ها</button>
+        <button class="nav-item" data-icon="✅" data-view="tasks">تسک‌های HR</button>
+        <button class="nav-item" data-icon="✉️" data-view="messages">مرکز پیامک</button>
+        <button class="nav-item" data-icon="🧾" data-view="templates">قالب‌ها</button>
+        <button class="nav-item" data-icon="📊" data-view="reports">گزارش‌ها</button>
+        <button class="nav-item" data-icon="⚙️" data-view="settings">تنظیمات</button>
       </nav>
 
       <div class="side-card">
@@ -463,6 +468,47 @@
                 <option value="false">واقعی؛ درخواست به API ارسال شود</option>
               </select>
             </label>
+            <label>تم رنگی پنل
+              <select class="input" id="accentTheme">
+                <option value="iranhotel">ایران‌هتل؛ سرمه‌ای و فیروزه‌ای</option>
+                <option value="ocean">آبی سازمانی</option>
+                <option value="emerald">سبز رشد و استخدام</option>
+                <option value="luxury">لوکس تیره و طلایی</option>
+              </select>
+            </label>
+            <label>حالت نمایش
+              <select class="input" id="uiDensity">
+                <option value="comfortable">راحت و خوانا</option>
+                <option value="compact">فشرده برای دیتای زیاد</option>
+              </select>
+            </label>
+            <label>فونت پنل
+              <select class="input" id="fontMode">
+                <option value="modern">مدرن فارسی؛ Vazirmatn / IRANSansX / Segoe</option>
+                <option value="classic">کلاسیک؛ Tahoma</option>
+              </select>
+            </label>
+            <label>لینک لوگو، اختیاری
+              <input class="input" id="logoUrl" placeholder="/assets/logo.svg یا آدرس https" />
+            </label>
+            <label>لینک Favicon، اختیاری
+              <input class="input" id="faviconUrl" placeholder="/assets/favicon.svg یا آدرس https" />
+            </label>
+            <div class="brand-upload-panel full">
+              <div class="brand-preview-card">
+                <div class="brand-preview-logo"><img id="settingsLogoPreview" src="/assets/logo.svg" alt="پیش‌نمایش لوگو" /></div>
+                <div>
+                  <b>پیش‌نمایش هویت بصری</b>
+                  <p>لوگو و Favicon می‌تواند با لینک یا آپلود فایل SVG/PNG/JPG تنظیم شود. فایل‌های آپلودی داخل همین مرورگر ذخیره می‌شوند.</p>
+                </div>
+              </div>
+              <div class="actions-row wrap">
+                <label class="btn ghost file-btn">آپلود لوگو<input type="file" id="logoFileInput" accept="image/svg+xml,image/png,image/jpeg,image/webp" /></label>
+                <label class="btn ghost file-btn">آپلود Favicon<input type="file" id="faviconFileInput" accept="image/svg+xml,image/png,image/jpeg,image/webp,image/x-icon" /></label>
+                <button class="btn ghost" type="button" id="clearBrandAssetsBtn">حذف لوگو و Favicon آپلودی</button>
+              </div>
+              <span class="help-text">برای نتیجه بهتر لوگو را مربع یا افقی با پس‌زمینه شفاف بگذار. Favicon بهتر است SVG یا PNG مربع باشد.</span>
+            </div>
             <div class="settings-actions full">
               <button class="btn primary" type="submit">ذخیره و اعمال تنظیمات</button>
               <button class="btn ghost" type="button" id="resetSettingsBtn">بازگشت به پیش‌فرض</button>

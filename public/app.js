@@ -35,7 +35,14 @@
     hrPhone: '05191005105',
     interviewers: 'مدیر منابع انسانی، مدیر واحد مربوطه، مدیر عملیات',
     apiToken: '',
-    clientDryRun: 'true'
+    clientDryRun: 'true',
+    logoUrl: '/assets/logo.svg',
+    logoDataUrl: '',
+    faviconUrl: '/assets/favicon.svg',
+    faviconDataUrl: '',
+    accentTheme: 'iranhotel',
+    uiDensity: 'comfortable',
+    fontMode: 'modern'
   };
 
   const LEGACY_DEFAULT_LOCATIONS = [
@@ -477,12 +484,25 @@
       persistSettingsFromForm();
     });
 
-    ['companyName','panelTitle','hrName','defaultLocation','locationLink','hrPhone','interviewers','apiToken','clientDryRun'].forEach((id) => {
+    ['companyName','panelTitle','hrName','defaultLocation','locationLink','hrPhone','interviewers','apiToken','clientDryRun','accentTheme','uiDensity','fontMode','logoUrl','faviconUrl'].forEach((id) => {
       const el = $('#' + id);
       el.addEventListener('change', () => {
         $('#settingsSaveState').textContent = 'تغییرات ذخیره‌نشده';
         $('#settingsSaveState').className = 'pill yellow';
       });
+    });
+
+    $('#logoFileInput').addEventListener('change', (event) => handleBrandAssetFile(event, 'logo'));
+    $('#faviconFileInput').addEventListener('change', (event) => handleBrandAssetFile(event, 'favicon'));
+    $('#clearBrandAssetsBtn').addEventListener('click', () => {
+      settings.logoDataUrl = '';
+      settings.faviconDataUrl = '';
+      settings.logoUrl = DEFAULT_SETTINGS.logoUrl;
+      settings.faviconUrl = DEFAULT_SETTINGS.faviconUrl;
+      saveSettings(true);
+      applySettingsToUi();
+      renderSettings();
+      toast('لوگو و Favicon آپلودی حذف شد و حالت پیش‌فرض برگشت.');
     });
 
     $('#resetSettingsBtn').addEventListener('click', () => {
@@ -505,6 +525,45 @@
       } catch (error) {
         toast('ذخیره‌سازی مرورگر خطا دارد: ' + error.message);
       }
+    });
+  }
+
+  async function handleBrandAssetFile(event, kind) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const maxKb = kind === 'favicon' ? 300 : 700;
+    if (file.size > maxKb * 1024) {
+      toast(`حجم فایل زیاد است. برای ${kind === 'favicon' ? 'Favicon' : 'لوگو'} حداکثر ${toFa(maxKb)} کیلوبایت پیشنهاد می‌شود.`);
+      event.target.value = '';
+      return;
+    }
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      if (kind === 'logo') {
+        settings.logoDataUrl = dataUrl;
+        settings.logoUrl = settings.logoUrl || DEFAULT_SETTINGS.logoUrl;
+      } else {
+        settings.faviconDataUrl = dataUrl;
+        settings.faviconUrl = settings.faviconUrl || DEFAULT_SETTINGS.faviconUrl;
+      }
+      const ok = saveSettings(true);
+      applySettingsToUi();
+      renderSettings();
+      $('#settingsSaveState').textContent = ok ? 'ذخیره و اعمال شد' : 'خطا در ذخیره';
+      $('#settingsSaveState').className = ok ? 'pill green' : 'pill red';
+      toast(kind === 'logo' ? 'لوگو آپلود و روی پنل اعمال شد.' : 'Favicon آپلود و اعمال شد.');
+    } catch (error) {
+      toast('خواندن فایل انجام نشد: ' + error.message);
+    }
+    event.target.value = '';
+  }
+
+  function fileToDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(reader.error || new Error('خطای خواندن فایل'));
+      reader.readAsDataURL(file);
     });
   }
 
@@ -554,7 +613,14 @@
       hrPhone: $('#hrPhone').value.trim(),
       interviewers: $('#interviewers').value.trim(),
       apiToken: $('#apiToken').value.trim(),
-      clientDryRun: $('#clientDryRun').value
+      clientDryRun: $('#clientDryRun').value,
+      logoUrl: $('#logoUrl').value.trim() || DEFAULT_SETTINGS.logoUrl,
+      faviconUrl: $('#faviconUrl').value.trim() || DEFAULT_SETTINGS.faviconUrl,
+      logoDataUrl: settings.logoDataUrl || '',
+      faviconDataUrl: settings.faviconDataUrl || '',
+      accentTheme: $('#accentTheme').value || DEFAULT_SETTINGS.accentTheme,
+      uiDensity: $('#uiDensity').value || DEFAULT_SETTINGS.uiDensity,
+      fontMode: $('#fontMode').value || DEFAULT_SETTINGS.fontMode
     };
     settings = { ...DEFAULT_SETTINGS, ...next };
     const ok = saveSettings(true);
@@ -596,6 +662,51 @@
     $('#brandSubTitle').textContent = settings.companyName || 'ایران‌هتل آنلاین';
     $('#storageBadge').textContent = store.available ? 'ذخیره‌سازی فعال' : 'ذخیره‌سازی غیرفعال';
     $('#dryRunBadge').textContent = settings.clientDryRun === 'false' ? 'حالت ارسال: واقعی از پنل' : 'حالت ارسال: تستی داخل پنل';
+    document.title = `${settings.panelTitle || 'IHO ATS'} | ${settings.companyName || 'ایران‌هتل آنلاین'}`;
+    applyBrandAssets();
+    applyAppearanceSettings();
+  }
+
+  function applyBrandAssets() {
+    const logoSrc = settings.logoDataUrl || settings.logoUrl || DEFAULT_SETTINGS.logoUrl;
+    const faviconSrc = settings.faviconDataUrl || settings.faviconUrl || DEFAULT_SETTINGS.faviconUrl;
+    const logo = $('#brandLogo');
+    if (logo) {
+      logo.src = logoSrc;
+      logo.style.display = 'block';
+      logo.onerror = () => { logo.style.display = 'none'; };
+    }
+    const preview = $('#settingsLogoPreview');
+    if (preview) preview.src = logoSrc;
+    const fav = $('#faviconLink');
+    if (fav) fav.href = faviconSrc;
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) themeMeta.setAttribute('content', themePalette(settings.accentTheme).primary);
+  }
+
+  function applyAppearanceSettings() {
+    const theme = themePalette(settings.accentTheme);
+    const root = document.documentElement;
+    root.style.setProperty('--primary', theme.primary);
+    root.style.setProperty('--primary-2', theme.secondary);
+    root.style.setProperty('--primary-soft', theme.soft);
+    root.style.setProperty('--sidebar-start', theme.sidebarStart);
+    root.style.setProperty('--sidebar-end', theme.sidebarEnd);
+    root.style.setProperty('--hero-start', theme.heroStart);
+    root.style.setProperty('--hero-end', theme.heroEnd);
+    document.body.classList.toggle('density-compact', settings.uiDensity === 'compact');
+    document.body.classList.toggle('font-classic', settings.fontMode === 'classic');
+    document.body.classList.toggle('font-modern', settings.fontMode !== 'classic');
+  }
+
+  function themePalette(name) {
+    const palettes = {
+      iranhotel: { primary: '#0f3b63', secondary: '#0ea5a3', soft: '#e6f3f7', sidebarStart: '#08233f', sidebarEnd: '#0d9488', heroStart: '#0f3b63', heroEnd: '#0d9488' },
+      ocean: { primary: '#1d4ed8', secondary: '#0891b2', soft: '#e0f2fe', sidebarStart: '#172554', sidebarEnd: '#0891b2', heroStart: '#1e40af', heroEnd: '#06b6d4' },
+      emerald: { primary: '#047857', secondary: '#16a34a', soft: '#dcfce7', sidebarStart: '#064e3b', sidebarEnd: '#16a34a', heroStart: '#065f46', heroEnd: '#22c55e' },
+      luxury: { primary: '#111827', secondary: '#b9852d', soft: '#f8f0df', sidebarStart: '#0f172a', sidebarEnd: '#7c5a1e', heroStart: '#111827', heroEnd: '#b9852d' }
+    };
+    return palettes[name] || palettes.iranhotel;
   }
 
   function renderStats() {
@@ -1004,6 +1115,13 @@
     $('#interviewers').value = settings.interviewers;
     $('#apiToken').value = settings.apiToken;
     $('#clientDryRun').value = settings.clientDryRun;
+    $('#accentTheme').value = settings.accentTheme || DEFAULT_SETTINGS.accentTheme;
+    $('#uiDensity').value = settings.uiDensity || DEFAULT_SETTINGS.uiDensity;
+    $('#fontMode').value = settings.fontMode || DEFAULT_SETTINGS.fontMode;
+    $('#logoUrl').value = settings.logoUrl || DEFAULT_SETTINGS.logoUrl;
+    $('#faviconUrl').value = settings.faviconUrl || DEFAULT_SETTINGS.faviconUrl;
+    const preview = $('#settingsLogoPreview');
+    if (preview) preview.src = settings.logoDataUrl || settings.logoUrl || DEFAULT_SETTINGS.logoUrl;
     if ($('#settingsSaveState').textContent === 'تغییرات ذخیره‌نشده') return;
     $('#settingsSaveState').textContent = 'ذخیره‌شده';
     $('#settingsSaveState').className = 'pill green';
