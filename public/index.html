@@ -3,36 +3,38 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#082f49" />
-  <title>پنل اطلاع‌رسانی HR ایران‌هتل</title>
+  <meta name="theme-color" content="#0f3b63" />
+  <title>IHO ATS | پنل جذب و پیامک منابع انسانی ایران‌هتل</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
   <div class="shell">
     <aside class="sidebar" id="sidebar">
       <div class="brand">
-        <div class="brand-mark">IH</div>
+        <div class="brand-mark">ATS</div>
         <div>
-          <h1>HR Connect</h1>
-          <p>ایران‌هتل آنلاین</p>
+          <h1 id="brandTitle">IHO ATS</h1>
+          <p id="brandSubTitle">ایران‌هتل آنلاین</p>
         </div>
       </div>
 
       <nav class="nav" aria-label="منوی اصلی">
         <button class="nav-item active" data-view="dashboard">داشبورد</button>
+        <button class="nav-item" data-view="jobs">فرصت‌های شغلی</button>
         <button class="nav-item" data-view="candidates">کاندیداها</button>
+        <button class="nav-item" data-view="pipeline">پایپ‌لاین جذب</button>
         <button class="nav-item" data-view="interviews">مصاحبه‌ها</button>
+        <button class="nav-item" data-view="tasks">تسک‌های HR</button>
         <button class="nav-item" data-view="messages">مرکز پیامک</button>
         <button class="nav-item" data-view="templates">قالب‌ها</button>
-        <button class="nav-item" data-view="bulk">ورود گروهی</button>
-        <button class="nav-item" data-view="logs">گزارش ارسال</button>
+        <button class="nav-item" data-view="reports">گزارش‌ها</button>
         <button class="nav-item" data-view="settings">تنظیمات</button>
       </nav>
 
       <div class="side-card">
-        <strong>حالت ارسال</strong>
-        <span id="dryRunBadge">تستی / امن</span>
-        <p>برای ارسال واقعی، در Vercel مقدار <b>SMS_DRY_RUN=false</b> بگذار.</p>
+        <strong>وضعیت پنل</strong>
+        <span id="storageBadge">در حال بررسی...</span>
+        <p id="dryRunBadge">حالت ارسال: تستی</p>
       </div>
     </aside>
 
@@ -40,23 +42,27 @@
       <header class="topbar">
         <button class="icon-btn mobile-only" id="menuBtn" aria-label="باز کردن منو">☰</button>
         <div>
-          <p class="eyebrow">پنل منابع انسانی</p>
+          <p class="eyebrow">سیستم جذب و اطلاع‌رسانی منابع انسانی</p>
           <h2 id="pageTitle">داشبورد</h2>
         </div>
         <div class="top-actions">
+          <button class="btn ghost" id="backupBtn">بکاپ JSON</button>
           <button class="btn ghost" id="seedBtn">دیتای نمونه</button>
-          <button class="btn primary" id="openCandidateModal">+ افزودن کاندیدا</button>
+          <button class="btn primary" id="openCandidateModal">+ کاندیدا</button>
         </div>
       </header>
 
       <section class="view active" id="view-dashboard">
         <div class="hero-panel">
           <div>
-            <p class="eyebrow">مدیریت ارتباط با متقاضیان</p>
-            <h3>مصاحبه، یادآوری، نتیجه و پیگیری‌ها در یک پنل</h3>
-            <p>کاندیداها را ثبت کن، زمان مصاحبه را مشخص کن، قالب پیامک انتخاب کن و ارسال‌ها را با لاگ کامل مدیریت کن.</p>
+            <p class="eyebrow">ATS سبک برای واحد HR</p>
+            <h3>از ثبت فرصت شغلی تا مصاحبه، امتیازدهی، پیامک و نتیجه نهایی</h3>
+            <p>کاندیداها، فرصت‌های شغلی، پایپ‌لاین جذب، تسک‌ها، یادآوری مصاحبه و پیامک‌های HR را در یک پنل مدیریت کن.</p>
           </div>
-          <button class="btn light" data-jump="messages">ارسال پیامک جدید</button>
+          <div class="hero-actions">
+            <button class="btn light" data-jump="pipeline">مشاهده پایپ‌لاین</button>
+            <button class="btn light soft" data-jump="messages">ارسال پیامک</button>
+          </div>
         </div>
 
         <div class="stats-grid" id="statsGrid"></div>
@@ -65,10 +71,10 @@
           <section class="card">
             <div class="card-head">
               <div>
-                <p class="eyebrow">امروز و فردا</p>
+                <p class="eyebrow">امروز تا سه روز آینده</p>
                 <h3>مصاحبه‌های نزدیک</h3>
               </div>
-              <button class="btn ghost small" data-jump="interviews">مشاهده همه</button>
+              <button class="btn ghost small" data-jump="interviews">همه مصاحبه‌ها</button>
             </div>
             <div id="upcomingList" class="list"></div>
           </section>
@@ -77,24 +83,57 @@
             <div class="card-head">
               <div>
                 <p class="eyebrow">قیف جذب</p>
-                <h3>وضعیت کاندیداها</h3>
+                <h3>وضعیت مراحل</h3>
               </div>
             </div>
             <div id="pipelineChart" class="pipeline"></div>
           </section>
         </div>
+
+        <section class="card">
+          <div class="card-head wrap">
+            <div>
+              <p class="eyebrow">فعالیت‌های اخیر</p>
+              <h3>تایم‌لاین جذب</h3>
+            </div>
+          </div>
+          <div class="timeline" id="activityFeed"></div>
+        </section>
+      </section>
+
+      <section class="view" id="view-jobs">
+        <section class="card">
+          <div class="card-head wrap">
+            <div>
+              <p class="eyebrow">Job Requisition</p>
+              <h3>فرصت‌های شغلی</h3>
+            </div>
+            <div class="filters">
+              <input id="jobSearch" class="input" placeholder="جستجوی عنوان یا واحد..." />
+              <select id="jobStatusFilter" class="input">
+                <option value="all">همه وضعیت‌ها</option>
+                <option value="باز">باز</option>
+                <option value="متوقف">متوقف</option>
+                <option value="بسته">بسته</option>
+              </select>
+              <button class="btn primary" id="openJobModal">+ فرصت شغلی</button>
+            </div>
+          </div>
+          <div class="cards-grid" id="jobsGrid"></div>
+        </section>
       </section>
 
       <section class="view" id="view-candidates">
         <section class="card">
           <div class="card-head wrap">
             <div>
-              <p class="eyebrow">بانک اطلاعاتی</p>
-              <h3>کاندیداها</h3>
+              <p class="eyebrow">Talent Database</p>
+              <h3>بانک کاندیداها</h3>
             </div>
             <div class="filters">
-              <input id="searchInput" class="input" placeholder="جستجو نام، موبایل یا موقعیت..." />
+              <input id="searchInput" class="input" placeholder="جستجو نام، موبایل، نقش، منبع یا تگ..." />
               <select id="statusFilter" class="input"></select>
+              <select id="jobFilter" class="input"></select>
               <button class="btn primary" id="addCandidateFromTable">+ کاندیدا</button>
             </div>
           </div>
@@ -102,7 +141,7 @@
             <table class="table">
               <thead>
                 <tr>
-                  <th>نام</th>
+                  <th>کاندیدا</th>
                   <th>موبایل</th>
                   <th>موقعیت</th>
                   <th>مرحله</th>
@@ -117,31 +156,65 @@
         </section>
       </section>
 
-      <section class="view" id="view-interviews">
-        <div class="grid two">
-          <section class="card">
-            <div class="card-head">
-              <div>
-                <p class="eyebrow">برنامه مصاحبه</p>
-                <h3>یادآوری‌های قابل زمان‌بندی</h3>
-              </div>
-              <button class="btn ghost small" id="scheduleAllBtn">زمان‌بندی همه یادآوری‌ها</button>
+      <section class="view" id="view-pipeline">
+        <section class="card">
+          <div class="card-head wrap">
+            <div>
+              <p class="eyebrow">Recruitment Pipeline</p>
+              <h3>پایپ‌لاین جذب</h3>
             </div>
-            <div id="reminderList" class="list"></div>
+            <div class="filters">
+              <select id="pipelineJobFilter" class="input"></select>
+              <button class="btn ghost" id="moveSelectedToInterview">دعوت افراد انتخاب‌شده به مصاحبه</button>
+            </div>
+          </div>
+          <p class="muted">روی دکمه‌های مرحله بعد/قبل بزن تا کاندیدا در پایپ‌لاین حرکت کند. این تغییرات ذخیره می‌شود.</p>
+          <div class="kanban" id="pipelineBoard"></div>
+        </section>
+      </section>
+
+      <section class="view" id="view-interviews">
+        <div class="grid two wide-left">
+          <section class="card">
+            <div class="card-head wrap">
+              <div>
+                <p class="eyebrow">Interview Management</p>
+                <h3>تقویم و یادآوری مصاحبه‌ها</h3>
+              </div>
+              <button class="btn ghost small" id="scheduleAllBtn">زمان‌بندی یادآوری ۲۴ ساعته</button>
+            </div>
+            <div id="interviewList" class="list"></div>
           </section>
           <section class="card">
             <div class="card-head">
               <div>
-                <p class="eyebrow">راهنما</p>
-                <h3>نحوه کار یادآوری</h3>
+                <p class="eyebrow">Scorecard</p>
+                <h3>امتیازدهی سریع</h3>
               </div>
             </div>
-            <div class="info-box">
-              <p>برای هر مصاحبه می‌توانی پیامک یادآوری ۲۴ ساعت، ۳ ساعت یا ۱ ساعت قبل را آماده کنی. اگر SMS.ir در حساب شما ارسال زمان‌بندی‌شده را پشتیبانی کند، زمان ارسال به API منتقل می‌شود.</p>
-              <p>اگر حالت تست فعال باشد، هیچ پیامکی ارسال نمی‌شود و فقط لاگ تست ساخته می‌شود.</p>
-            </div>
+            <div id="scorecardPanel" class="scorecard-panel"></div>
           </section>
         </div>
+      </section>
+
+      <section class="view" id="view-tasks">
+        <section class="card">
+          <div class="card-head wrap">
+            <div>
+              <p class="eyebrow">HR Tasks</p>
+              <h3>تسک‌ها و پیگیری‌ها</h3>
+            </div>
+            <div class="filters">
+              <select id="taskStatusFilter" class="input">
+                <option value="open">باز</option>
+                <option value="done">انجام‌شده</option>
+                <option value="all">همه</option>
+              </select>
+              <button class="btn primary" id="openTaskModal">+ تسک</button>
+            </div>
+          </div>
+          <div id="tasksList" class="task-list"></div>
+        </section>
       </section>
 
       <section class="view" id="view-messages">
@@ -149,7 +222,7 @@
           <section class="card">
             <div class="card-head">
               <div>
-                <p class="eyebrow">ارسال پیامک</p>
+                <p class="eyebrow">SMS Center</p>
                 <h3>مرکز پیامک HR</h3>
               </div>
               <span class="pill" id="selectedCount">۰ نفر انتخاب شده</span>
@@ -170,11 +243,11 @@
 
             <div class="message-meta">
               <span id="smsLength">۰ کاراکتر</span>
-              <span>متغیرها: {name} {role} {date} {time} {location} {company} {hrName}</span>
+              <span>متغیرها: {name} {role} {job} {date} {time} {location} {company} {hrName} {link}</span>
             </div>
 
             <div class="actions-row">
-              <button class="btn ghost" id="previewBtn">پیش‌نمایش برای نفر اول</button>
+              <button class="btn ghost" id="previewBtn">پیش‌نمایش</button>
               <button class="btn primary" id="sendSmsBtn">ارسال / زمان‌بندی پیامک</button>
             </div>
           </section>
@@ -182,8 +255,8 @@
           <section class="card">
             <div class="card-head">
               <div>
-                <p class="eyebrow">گیرندگان</p>
-                <h3>انتخاب کاندیدا</h3>
+                <p class="eyebrow">Recipients</p>
+                <h3>انتخاب گیرندگان</h3>
               </div>
               <button class="btn ghost small" id="selectUpcomingBtn">انتخاب مصاحبه‌های نزدیک</button>
             </div>
@@ -197,8 +270,8 @@
           <section class="card">
             <div class="card-head">
               <div>
-                <p class="eyebrow">قالب‌های آماده</p>
-                <h3>مدیریت قالب پیامک</h3>
+                <p class="eyebrow">Templates</p>
+                <h3>قالب‌های پیامک</h3>
               </div>
               <button class="btn primary small" id="newTemplateBtn">+ قالب جدید</button>
             </div>
@@ -207,8 +280,8 @@
           <section class="card">
             <div class="card-head">
               <div>
-                <p class="eyebrow">ویرایش</p>
-                <h3>جزئیات قالب</h3>
+                <p class="eyebrow">Edit Template</p>
+                <h3>ویرایش قالب</h3>
               </div>
             </div>
             <form id="templateForm" class="stack">
@@ -225,63 +298,61 @@
         </div>
       </section>
 
-      <section class="view" id="view-bulk">
-        <section class="card">
-          <div class="card-head">
-            <div>
-              <p class="eyebrow">ورود سریع</p>
-              <h3>ایمپورت گروهی کاندیداها</h3>
+      <section class="view" id="view-reports">
+        <div class="grid two">
+          <section class="card">
+            <div class="card-head wrap">
+              <div>
+                <p class="eyebrow">Analytics</p>
+                <h3>گزارش جذب</h3>
+              </div>
+              <div class="actions-row compact">
+                <button class="btn ghost small" id="exportCandidatesBtn">خروجی کاندیداها CSV</button>
+                <button class="btn ghost small" id="exportLogsBtn">خروجی لاگ CSV</button>
+              </div>
             </div>
-          </div>
-          <p class="muted">هر خط را با این فرمت وارد کن: نام، موبایل، موقعیت شغلی، تاریخ مصاحبه، ساعت مصاحبه</p>
-          <textarea class="textarea mono" id="bulkText" rows="10" placeholder="مثال:\nعلی رضایی،09121234567،کارشناس فروش،2026-07-10،10:30\nسارا محمدی،09351234567،کارشناس پشتیبانی،2026-07-11،14:00"></textarea>
-          <div class="actions-row">
-            <button class="btn ghost" id="bulkSampleBtn">نمونه را قرار بده</button>
-            <button class="btn primary" id="bulkImportBtn">افزودن به پنل</button>
-          </div>
-        </section>
-      </section>
-
-      <section class="view" id="view-logs">
-        <section class="card">
-          <div class="card-head wrap">
-            <div>
-              <p class="eyebrow">گزارش</p>
-              <h3>لاگ ارسال پیامک‌ها</h3>
-            </div>
-            <div class="actions-row compact">
-              <button class="btn ghost small" id="exportLogsBtn">خروجی CSV</button>
+            <div id="reportsGrid" class="report-grid"></div>
+          </section>
+          <section class="card">
+            <div class="card-head wrap">
+              <div>
+                <p class="eyebrow">SMS Logs</p>
+                <h3>گزارش ارسال پیامک</h3>
+              </div>
               <button class="btn danger small" id="clearLogsBtn">پاک کردن لاگ</button>
             </div>
-          </div>
-          <div class="table-wrap">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>زمان</th>
-                  <th>گیرنده</th>
-                  <th>نوع</th>
-                  <th>وضعیت</th>
-                  <th>متن</th>
-                </tr>
-              </thead>
-              <tbody id="logRows"></tbody>
-            </table>
-          </div>
-        </section>
+            <div class="table-wrap compact-table">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>زمان</th>
+                    <th>گیرنده</th>
+                    <th>نوع</th>
+                    <th>وضعیت</th>
+                  </tr>
+                </thead>
+                <tbody id="logRows"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
       </section>
 
       <section class="view" id="view-settings">
         <section class="card settings-card">
-          <div class="card-head">
+          <div class="card-head wrap">
             <div>
-              <p class="eyebrow">تنظیمات پنل</p>
-              <h3>اطلاعات پیش‌فرض HR</h3>
+              <p class="eyebrow">Settings</p>
+              <h3>تنظیمات پنل و ذخیره‌سازی</h3>
             </div>
+            <span class="pill" id="settingsSaveState">آماده ذخیره</span>
           </div>
           <form id="settingsForm" class="form-grid three">
             <label>نام شرکت
               <input class="input" id="companyName" />
+            </label>
+            <label>عنوان پنل
+              <input class="input" id="panelTitle" />
             </label>
             <label>نام HR / امضا
               <input class="input" id="hrName" />
@@ -289,23 +360,48 @@
             <label>محل پیش‌فرض مصاحبه
               <input class="input" id="defaultLocation" />
             </label>
-            <label>لینک لوکیشن / فرم
+            <label>لینک لوکیشن / فرم استخدام
               <input class="input" id="locationLink" />
+            </label>
+            <label>تلفن داخلی HR
+              <input class="input" id="hrPhone" />
+            </label>
+            <label>مصاحبه‌کننده‌ها، با کاما جدا کن
+              <input class="input" id="interviewers" />
             </label>
             <label>توکن داخلی API، اختیاری
               <input class="input" id="apiToken" type="password" autocomplete="new-password" />
             </label>
-            <label>حالت تست ظاهری پنل
+            <label>حالت ارسال از داخل پنل
               <select class="input" id="clientDryRun">
-                <option value="true">تستی</option>
-                <option value="false">واقعی</option>
+                <option value="true">تستی؛ درخواست واقعی ارسال نشود</option>
+                <option value="false">واقعی؛ درخواست به API ارسال شود</option>
               </select>
             </label>
-            <button class="btn primary" type="submit">ذخیره تنظیمات</button>
+            <div class="settings-actions full">
+              <button class="btn primary" type="submit">ذخیره و اعمال تنظیمات</button>
+              <button class="btn ghost" type="button" id="resetSettingsBtn">بازگشت به پیش‌فرض</button>
+              <button class="btn ghost" type="button" id="testStorageBtn">تست ذخیره‌سازی</button>
+            </div>
           </form>
-          <div class="info-box small-top">
-            <p><b>مهم:</b> کلید واقعی SMS.ir را فقط در Environment Variables خود Vercel وارد کن، نه داخل پنل. این فرم فقط تنظیمات سمت کاربر و توکن اختیاری را ذخیره می‌کند.</p>
+          <div class="info-box small-top" id="settingsInfo">
+            <p><b>فیکس جدید:</b> تنظیمات بلافاصله در LocalStorage ذخیره، دوباره خوانده و روی برند، محل پیش‌فرض، قالب‌ها و حالت ارسال اعمال می‌شود. برای SMS واقعی، علاوه بر حالت واقعی داخل پنل، در Vercel هم <b>SMS_DRY_RUN=false</b> و سپس Redeploy لازم است.</p>
           </div>
+        </section>
+
+        <section class="card settings-card">
+          <div class="card-head wrap">
+            <div>
+              <p class="eyebrow">Backup / Restore</p>
+              <h3>بکاپ و انتقال دیتا</h3>
+            </div>
+          </div>
+          <div class="actions-row wrap">
+            <button class="btn ghost" id="exportAllBtn">خروجی کامل JSON</button>
+            <label class="btn ghost file-btn">ورود بکاپ JSON<input type="file" id="importAllInput" accept="application/json" /></label>
+            <button class="btn danger" id="clearAllBtn">پاک کردن کل دیتای پنل</button>
+          </div>
+          <p class="muted">در این نسخه Zero Dependency دیتا داخل مرورگر ذخیره می‌شود. برای استفاده چند کاربره واقعی، مرحله بعد اتصال دیتابیس است.</p>
         </section>
       </section>
     </main>
@@ -313,7 +409,7 @@
 
   <div class="modal" id="candidateModal" aria-hidden="true">
     <div class="modal-backdrop" data-close-modal></div>
-    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="candidateModalTitle">
+    <div class="modal-card wide" role="dialog" aria-modal="true" aria-labelledby="candidateModalTitle">
       <div class="modal-head">
         <h3 id="candidateModalTitle">افزودن کاندیدا</h3>
         <button class="icon-btn" data-close-modal>×</button>
@@ -326,16 +422,22 @@
         <label>شماره موبایل
           <input class="input" id="candidatePhone" required placeholder="0912..." />
         </label>
-        <label>موقعیت شغلی
+        <label>ایمیل
+          <input class="input" id="candidateEmail" type="email" placeholder="optional@email.com" />
+        </label>
+        <label>فرصت شغلی
+          <select class="input" id="candidateJob"></select>
+        </label>
+        <label>موقعیت/عنوان درخواستی
           <input class="input" id="candidateRole" required />
         </label>
         <label>منبع جذب
           <input class="input" id="candidateSource" placeholder="جابینجا، معرفی، سایت..." />
         </label>
         <label>مرحله
-          <select class="input" id="candidateStatus"></select>
+          <select class="input" id="candidateStage"></select>
         </label>
-        <label>امتیاز
+        <label>امتیاز کلی
           <input class="input" id="candidateScore" type="number" min="0" max="100" value="70" />
         </label>
         <label>تاریخ مصاحبه
@@ -344,22 +446,106 @@
         <label>ساعت مصاحبه
           <input class="input" id="candidateTime" type="time" />
         </label>
+        <label>مصاحبه‌کننده
+          <input class="input" id="candidateInterviewer" list="interviewerList" />
+          <datalist id="interviewerList"></datalist>
+        </label>
+        <label>حقوق مورد انتظار
+          <input class="input" id="candidateSalary" />
+        </label>
+        <label>زمان آماده به کار
+          <input class="input" id="candidateAvailability" placeholder="فوری، دو هفته دیگر..." />
+        </label>
+        <label>لینک رزومه
+          <input class="input" id="candidateResume" placeholder="لینک فایل یا Drive" />
+        </label>
         <label class="full">محل مصاحبه
           <input class="input" id="candidateLocation" />
+        </label>
+        <label class="full">تگ‌ها
+          <input class="input" id="candidateTags" placeholder="مثال: فروش، شیفت، مشهد" />
         </label>
         <label class="full">یادداشت HR
           <textarea class="textarea" id="candidateNotes" rows="4"></textarea>
         </label>
+        <fieldset class="full score-fieldset">
+          <legend>Scorecard</legend>
+          <div class="form-grid five">
+            <label>فنی<input class="input" id="scoreTechnical" type="number" min="0" max="100" /></label>
+            <label>ارتباطی<input class="input" id="scoreCommunication" type="number" min="0" max="100" /></label>
+            <label>فرهنگ سازمانی<input class="input" id="scoreCulture" type="number" min="0" max="100" /></label>
+            <label>انگیزه<input class="input" id="scoreMotivation" type="number" min="0" max="100" /></label>
+            <label>دسترسی زمانی<input class="input" id="scoreAvailability" type="number" min="0" max="100" /></label>
+          </div>
+        </fieldset>
         <div class="modal-actions full">
           <button type="button" class="btn ghost" data-close-modal>انصراف</button>
-          <button type="submit" class="btn primary">ذخیره</button>
+          <button type="submit" class="btn primary">ذخیره کاندیدا</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal" id="jobModal" aria-hidden="true">
+    <div class="modal-backdrop" data-close-job-modal></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="jobModalTitle">
+      <div class="modal-head">
+        <h3 id="jobModalTitle">افزودن فرصت شغلی</h3>
+        <button class="icon-btn" data-close-job-modal>×</button>
+      </div>
+      <form id="jobForm" class="form-grid two-cols">
+        <input type="hidden" id="jobId" />
+        <label>عنوان شغلی<input class="input" id="jobTitle" required /></label>
+        <label>واحد سازمانی<input class="input" id="jobDepartment" /></label>
+        <label>شهر<input class="input" id="jobCity" /></label>
+        <label>مالک جذب<input class="input" id="jobOwner" /></label>
+        <label>وضعیت
+          <select class="input" id="jobStatus">
+            <option>باز</option><option>متوقف</option><option>بسته</option>
+          </select>
+        </label>
+        <label>اولویت
+          <select class="input" id="jobPriority">
+            <option>بالا</option><option>متوسط</option><option>پایین</option>
+          </select>
+        </label>
+        <label>تعداد ظرفیت<input class="input" id="jobOpenings" type="number" min="1" value="1" /></label>
+        <label>نوع همکاری<input class="input" id="jobType" placeholder="تمام‌وقت، پاره‌وقت..." /></label>
+        <label class="full">شرح کوتاه نیازمندی<textarea class="textarea" id="jobDescription" rows="4"></textarea></label>
+        <div class="modal-actions full">
+          <button type="button" class="btn ghost" data-close-job-modal>انصراف</button>
+          <button type="submit" class="btn primary">ذخیره فرصت شغلی</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal" id="taskModal" aria-hidden="true">
+    <div class="modal-backdrop" data-close-task-modal></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="taskModalTitle">
+      <div class="modal-head">
+        <h3 id="taskModalTitle">افزودن تسک</h3>
+        <button class="icon-btn" data-close-task-modal>×</button>
+      </div>
+      <form id="taskForm" class="form-grid two-cols">
+        <input type="hidden" id="taskId" />
+        <label class="full">عنوان تسک<input class="input" id="taskTitle" required /></label>
+        <label>مرتبط با کاندیدا<select class="input" id="taskCandidate"></select></label>
+        <label>تاریخ انجام<input class="input" id="taskDueDate" type="date" /></label>
+        <label>مسئول<input class="input" id="taskOwner" /></label>
+        <label>اولویت
+          <select class="input" id="taskPriority"><option>بالا</option><option>متوسط</option><option>پایین</option></select>
+        </label>
+        <label class="full">توضیحات<textarea class="textarea" id="taskNotes" rows="3"></textarea></label>
+        <div class="modal-actions full">
+          <button type="button" class="btn ghost" data-close-task-modal>انصراف</button>
+          <button type="submit" class="btn primary">ذخیره تسک</button>
         </div>
       </form>
     </div>
   </div>
 
   <div class="toast" id="toast"></div>
-
   <script src="/app.js"></script>
 </body>
 </html>

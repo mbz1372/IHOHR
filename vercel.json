@@ -1,10 +1,12 @@
 {
   "version": 2,
-  "installCommand": "node -e \"console.log('IHO HR Panel: zero dependencies, install skipped')\"",
+  "installCommand": "node -e \"console.log('IHO ATS: zero dependencies, install skipped')\"",
   "buildCommand": "node scripts/build-check.js",
   "outputDirectory": "public",
-  "cleanUrls": true,
-  "trailingSlash": false,
+  "routes": [
+    { "src": "/api/sms", "dest": "/api/sms.js" },
+    { "src": "/(.*)", "dest": "/public/$1" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
